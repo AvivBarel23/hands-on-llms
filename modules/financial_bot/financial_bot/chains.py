@@ -154,6 +154,19 @@ class ContextExtractorChain(Chain):
 
         return question
 
+    def search_qdrant(self, client, query_vector: list, filters: dict):
+        # Build Qdrant query filter
+        qdrant_filter = {"must": [{"key": k, "match": {"value": v}} for k, v in filters.items()]}
+
+        # Perform the search
+        results = client.search(
+            collection_name="your_collection",
+            query_vector=query_vector,
+            query_filter=qdrant_filter,
+            limit=5  # Adjust limit based on your needs
+        )
+        return results
+
 
 class FinancialBotQAChain(Chain):
     """This custom chain handles LLM generation upon given prompt"""

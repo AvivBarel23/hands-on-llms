@@ -10,6 +10,8 @@ from qdrant_client.models import PointStruct
 from streaming_pipeline import constants
 from streaming_pipeline.models import Document
 
+from modules.streaming_pipeline.streaming_pipeline.OpenAIHelper import OpenAIHelper
+
 
 class QdrantVectorOutput(DynamicOutput):
     """A class representing a Qdrant vector output.
@@ -123,12 +125,22 @@ class QdrantVectorSink(StatelessSink):
     ):
         self._client = client
         self._collection_name = collection_name
+        self._openai_client=OpenAIHelper(api_key="123")
 
     def write(self, document: Document):
+        # Generate metadata for the document
+        metadata = self._openai_client.categorize_hierarchically(document.text)
         ids, payloads = document.to_payloads()
+
+        # Add metadata to payload
         points = [
-            PointStruct(id=idx, vector=vector, payload=_payload)
+            PointStruct(
+                id=idx,
+                vector=vector,
+                payload={**_payload, **metadata}  # Merge payload with metadata
+            )
             for idx, vector, _payload in zip(ids, document.embeddings, payloads)
         ]
 
         self._client.upsert(collection_name=self._collection_name, points=points)
+
