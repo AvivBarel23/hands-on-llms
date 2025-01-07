@@ -58,7 +58,7 @@ make install_dev
 
 Prepare credentials:
 ```shell
-cp .env.example .env
+cp .env .env
 ```
 --> and complete the `.env` file with your [external services credentials](https://github.com/ishai-rosenberg/hands-on-llms/tree/main#2-setup-external-services).
 
