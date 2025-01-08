@@ -10,7 +10,7 @@ from qdrant_client.models import PointStruct
 from streaming_pipeline import constants
 from streaming_pipeline.models import Document
 
-from streaming_pipeline import HierarchicalDataManager
+from HierarchicalDataManager import HierarchicalDataManager
 
 
 class QdrantVectorOutput(DynamicOutput):
