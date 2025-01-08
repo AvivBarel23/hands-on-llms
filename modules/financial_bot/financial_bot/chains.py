@@ -16,8 +16,8 @@ from unstructured.cleaners.core import (
     replace_unicode_quotes,
 )
 
-from modules.financial_bot.financial_bot.embeddings import EmbeddingModelSingleton
-from modules.financial_bot.financial_bot.template import PromptTemplate
+from financial_bot.embeddings import EmbeddingModelSingleton
+from financial_bot.template import PromptTemplate
 
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
