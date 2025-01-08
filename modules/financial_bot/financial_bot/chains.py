@@ -108,6 +108,60 @@ class ContextExtractorChain(Chain):
     def output_keys(self) -> List[str]:
         return ["context"]
 
+    def search(self, query: str, query_vector: List[float], top_k: int = 10):
+        """
+        Search for the most relevant data based on the query.
+        """
+        # Step 1: Sector Determination
+        sectors = [
+            node["name"] for node in self.client.search(
+                collection_name=self.hierarchy_collection,
+                query_vector=[0.0],
+                filter={"must": [{"key": "type", "match": {"value": "sector"}}]},
+                limit=100,
+            )
+        ]
+        sector = self.classify_with_gpt(query, sectors, "sector")
+
+        # Step 2: Company/Subject Determination
+        subjects = [
+            node["name"] for node in self.client.search(
+                collection_name=self.hierarchy_collection,
+                query_vector=[0.0],
+                filter={
+                    "must": [
+                        {"key": "type", "match": {"value": "subject"}},
+                        {"key": "parent", "match": {"value": sector}},
+                    ]
+                },
+                limit=100,
+            )
+        ]
+        subject = self.classify_with_gpt(query, subjects, "subject")
+
+        # Step 3: Event Type Determination
+        event_types = [
+            node["name"] for node in self.client.search(
+                collection_name=self.hierarchy_collection,
+                query_vector=[0.0],
+                filter={
+                    "must": [
+                        {"key": "type", "match": {"value": "event_type"}},
+                        {"key": "parent", "match": {"value": subject}},
+                    ]
+                },
+                limit=100,
+            )
+        ]
+        event_type = self.classify_with_gpt(query, event_types, "event type")
+
+        # Step 4: Search in Qdrant
+        collection_name = f"{sector}_{subject}_{event_type}".lower().replace(" ", "_")
+        return self.client.search(
+            collection_name=collection_name,
+            query_vector=query_vector,
+            limit=self.top_k,
+        )
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         _, quest_key = self.input_keys
         question_str = inputs[quest_key]
@@ -120,10 +174,9 @@ class ContextExtractorChain(Chain):
 
         # TODO: Using the metadata, use the filter to take into consideration only the news from the last 24 hours
         # (or other time frame).
-        matches = self.vector_store.search(
+        matches = self.search(
+            query=''.join(inputs),
             query_vector=embeddings,
-            k=self.top_k,
-            collection_name=self.vector_collection,
         )
 
         context = ""
@@ -133,6 +186,7 @@ class ContextExtractorChain(Chain):
         return {
             "context": context,
         }
+
 
     def clean(self, question: str) -> str:
         """
