@@ -1,3 +1,4 @@
+import os
 from typing import List, Dict, Optional
 from qdrant_client.models import PointStruct
 from qdrant_client.http.models import VectorParams, Distance
@@ -6,9 +7,9 @@ import openai
 
 class HierarchicalDataManager:
 
-    def __init__(self, qdrant_client: QdrantClient, openai_api_key: str):
+    def __init__(self, qdrant_client: QdrantClient):
         self.client = qdrant_client
-        openai.api_key = openai_api_key
+        openai.api_key = os.environ["OPENAI_API_KEY"]
         self.hierarchy_collection = "hierarchy_tree"
 
         # Ensure the hierarchy collection exists
@@ -93,7 +94,7 @@ class HierarchicalDataManager:
                 ],
             )
 
-    def save_data(self, document: Document, vector: List[float]):
+    def save_data(self, document, vector: List[float]):
         """
         Save a document in the proper hierarchical structure.
         """
@@ -158,7 +159,7 @@ class HierarchicalDataManager:
             for idx, vector, _payload in zip(ids, document.embeddings, payloads)
         ]
 
-        self._client.upsert(collection_name=self._collection_name, points=points)
+        self.client.upsert(collection_name=collection_name, points=points)
 
 
 

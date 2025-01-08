@@ -1,6 +1,8 @@
+import os
 import time
 from typing import Any, Dict, List, Optional
 
+import openai
 import qdrant_client
 from langchain import chains
 from langchain.callbacks.manager import CallbackManagerForChainRun
@@ -14,8 +16,8 @@ from unstructured.cleaners.core import (
     replace_unicode_quotes,
 )
 
-from financial_bot.embeddings import EmbeddingModelSingleton
-from financial_bot.template import PromptTemplate
+from modules.financial_bot.financial_bot.embeddings import EmbeddingModelSingleton
+from modules.financial_bot.financial_bot.template import PromptTemplate
 
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
@@ -107,62 +109,104 @@ class ContextExtractorChain(Chain):
     @property
     def output_keys(self) -> List[str]:
         return ["context"]
+    def classify_hierarchy_level(self, query: str, options: List[str], level: str, top_k: int = 3) -> List[str]:
+        """
+        Classifies a query into the top-k options at a given hierarchy level.
+
+        Args:
+            query (str): The user's search query.
+            options (List[str]): Available options at the current hierarchy level.
+            level (str): The current hierarchy level (sector, subject, event type).
+            top_k (int): The number of top options to return.
+
+        Returns:
+            List[str]: The top-k most relevant options for the query.
+        """
+        prompt = (
+            f"Given the query '{query}', which of these {level}s is it most related to? "
+            f"Return up to {top_k} options ranked by relevance: {', '.join(options)}"
+        )
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=prompt,
+            max_tokens=100,  # Ensuring the response size is limited
+            n=1,             # Single completion
+            stop=None,       # No specific stopping sequence
+            temperature=0.7, # Controlled randomness
+        )
+        classified_options = response.choices[0].text.strip().split("\n")
+        return [opt.strip() for opt in classified_options][:top_k]
+
+
+    def get_current_level_options(self, level: str, parent: Optional[str] = None) -> List[str]:
+        """
+        Fetches available options at the current hierarchy level.
+
+        Args:
+            level (str): The hierarchy level (sector, subject, event_type).
+            parent (Optional[str]): The parent node (if applicable).
+
+        Returns:
+            List[str]: The names of the available options at the current level.
+        """
+        query_filter = {"must": [{"key": "type", "match": {"value": level}}]}
+        if parent:
+            query_filter["must"].append({"key": "parent", "match": {"value": parent}})
+
+        options = [
+            node.payload["name"]
+            for node in self.vector_store.search(
+                collection_name=self.hierarchy_collection,
+                query_vector=[0.0],  # Dummy vector as we are using filters
+                query_filter=query_filter,
+                limit=100,
+            )
+        ]
+        return options
+
 
     def search(self, query: str, query_vector: List[float], top_k: int = 10):
         """
-        Search for the most relevant data based on the query.
+        Searches for the most relevant data based on the hierarchical structure with top-k branch exploration.
+
+        Args:
+            query (str): The user's search query.
+            query_vector (List[float]): Embedding vector for the query.
+            top_k (int): The number of top branches to explore at each level.
+
+        Returns:
+            List[dict]: List of relevant data points.
         """
-        # Step 1: Sector Determination
-        sectors = [
-            node["name"] for node in self.client.search(
-                collection_name=self.hierarchy_collection,
-                query_vector=[0.0],
-                filter={"must": [{"key": "type", "match": {"value": "sector"}}]},
-                limit=100,
-            )
-        ]
-        sector = self.classify_with_gpt(query, sectors, "sector")
+        results = []
 
-        # Step 2: Company/Subject Determination
-        subjects = [
-            node["name"] for node in self.client.search(
-                collection_name=self.hierarchy_collection,
-                query_vector=[0.0],
-                filter={
-                    "must": [
-                        {"key": "type", "match": {"value": "subject"}},
-                        {"key": "parent", "match": {"value": sector}},
-                    ]
-                },
-                limit=100,
-            )
-        ]
-        subject = self.classify_with_gpt(query, subjects, "subject")
+        # Step 1: Fetch all sectors and classify the query into top-k sectors
+        sectors = self.get_current_level_options("sector")
+        top_sectors = self.classify_hierarchy_level(query, sectors, "sector", top_k)
 
-        # Step 3: Event Type Determination
-        event_types = [
-            node["name"] for node in self.client.search(
-                collection_name=self.hierarchy_collection,
-                query_vector=[0.0],
-                filter={
-                    "must": [
-                        {"key": "type", "match": {"value": "event_type"}},
-                        {"key": "parent", "match": {"value": subject}},
-                    ]
-                },
-                limit=100,
-            )
-        ]
-        event_type = self.classify_with_gpt(query, event_types, "event type")
+        for sector in top_sectors:
+            # Step 2: Fetch all subjects under the sector and classify into top-k subjects
+            subjects = self.get_current_level_options("subject", parent=sector)
+            top_subjects = self.classify_hierarchy_level(query, subjects, "subject", top_k)
 
-        # Step 4: Search in Qdrant
-        collection_name = f"{sector}_{subject}_{event_type}".lower().replace(" ", "_")
-        return self.client.search(
-            collection_name=collection_name,
-            query_vector=query_vector,
-            limit=self.top_k,
-        )
+            for subject in top_subjects:
+                # Step 3: Fetch all event types under the subject and classify into top-k event types
+                event_types = self.get_current_level_options("event_type", parent=subject)
+                top_event_types = self.classify_hierarchy_level(query, event_types, "event_type", top_k)
+
+                for event_type in top_event_types:
+                    # Step 4: Fetch data from the identified hierarchy path
+                    collection_name = f"{sector}_{subject}_{event_type}".lower().replace(" ", "_")
+                    data = self.vector_store.search(
+                        collection_name=collection_name,
+                        query_vector=query_vector,
+                        limit=self.top_k,
+                    )
+                    results.extend(data)
+
+        return results
+
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        openai.api_key = os.environ["OPENAI_API_KEY"]
         _, quest_key = self.input_keys
         question_str = inputs[quest_key]
 
@@ -174,10 +218,7 @@ class ContextExtractorChain(Chain):
 
         # TODO: Using the metadata, use the filter to take into consideration only the news from the last 24 hours
         # (or other time frame).
-        matches = self.search(
-            query=''.join(inputs),
-            query_vector=embeddings,
-        )
+        matches = self.search(question_str, embeddings, top_k=self.top_k)
 
         context = ""
         for match in matches:
@@ -207,19 +248,6 @@ class ContextExtractorChain(Chain):
         question = clean_non_ascii_chars(question)
 
         return question
-
-    def search_qdrant(self, client, query_vector: list, filters: dict):
-        # Build Qdrant query filter
-        qdrant_filter = {"must": [{"key": k, "match": {"value": v}} for k, v in filters.items()]}
-
-        # Perform the search
-        results = client.search(
-            collection_name="your_collection",
-            query_vector=query_vector,
-            query_filter=qdrant_filter,
-            limit=5  # Adjust limit based on your needs
-        )
-        return results
 
 
 class FinancialBotQAChain(Chain):

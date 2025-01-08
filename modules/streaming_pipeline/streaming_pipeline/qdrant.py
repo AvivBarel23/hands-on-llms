@@ -10,7 +10,7 @@ from qdrant_client.models import PointStruct
 from streaming_pipeline import constants
 from streaming_pipeline.models import Document
 
-from modules.streaming_pipeline.streaming_pipeline.OpenAIHelper import OpenAIHelper
+from modules.streaming_pipeline.streaming_pipeline.HierarchicalDataManager import HierarchicalDataManager
 
 
 class QdrantVectorOutput(DynamicOutput):
@@ -125,9 +125,8 @@ class QdrantVectorSink(StatelessSink):
     ):
         self._client = client
         self._collection_name = collection_name
-        self._openai_client=OpenAIHelper(api_key="123")
+        self._openai_client=HierarchicalDataManager()
 
     def write(self, document: Document):
-        # Generate metadata for the document
-        metadata = self._openai_client.categorize_hierarchically(document.text)
+        self._openai_client.save_data(document)
 
