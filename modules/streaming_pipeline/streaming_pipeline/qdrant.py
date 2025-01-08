@@ -106,7 +106,7 @@ class HierarchicalDataManager:
                 ],
             )
 
-    def save_data(self, document, vector: List[float]):
+    def save_data(self, document):
         """
         Save a document in the proper hierarchical structure.
         """
@@ -283,9 +283,8 @@ class QdrantVectorSink(StatelessSink):
         client: QdrantClient,
         collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
     ):
-        self._client = client
         self._collection_name = collection_name
-        self._openai_client=HierarchicalDataManager()
+        self._openai_client=HierarchicalDataManager(client)
 
     def write(self, document: Document):
         self._openai_client.save_data(document)
