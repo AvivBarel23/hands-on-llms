@@ -59,7 +59,7 @@ class HierarchicalDataManager:
         """
         results = self.client.search(
             collection_name=self.hierarchy_collection,
-            query_vector=[0.0],  # Dummy query vector
+            query_vector=[1.0],  # Dummy query vector
             filter={
                 "must": [
                     {"key": "name", "match": {"value": name}},
@@ -116,7 +116,7 @@ class HierarchicalDataManager:
         sectors = [
             node["name"] for node in self.client.search(
                 collection_name=self.hierarchy_collection,
-                query_vector=[0.0],
+                query_vector=[1.0],
                 filter={"must": [{"key": "type", "match": {"value": "sector"}}]},
                 limit=100,
             )
@@ -128,7 +128,7 @@ class HierarchicalDataManager:
         subjects = [
             node["name"] for node in self.client.search(
                 collection_name=self.hierarchy_collection,
-                query_vector=[0.0],
+                query_vector=[1.0],
                 filter={
                     "must": [
                         {"key": "type", "match": {"value": "subject"}},
@@ -145,7 +145,7 @@ class HierarchicalDataManager:
         event_types = [
             node["name"] for node in self.client.search(
                 collection_name=self.hierarchy_collection,
-                query_vector=[0.0],
+                query_vector=[1.0],
                 filter={
                     "must": [
                         {"key": "type", "match": {"value": "event_type"}},
