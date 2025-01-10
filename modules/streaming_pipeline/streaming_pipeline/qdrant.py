@@ -55,7 +55,7 @@ class HierarchicalDataManager:
     def get_hierarchy_node(self, name: str, level: str) -> Optional[ScoredPoint]:
         results = self.client.search(
             collection_name=self.hierarchy_collection,
-            query_vector=[1.0],  # Dummy query vector
+            query_vector=[1],  # Dummy query vector
             filter={
                 "must": [
                     {"key": "name", "match": {"value": name}},
@@ -80,7 +80,7 @@ class HierarchicalDataManager:
                 points=[
                     PointStruct(
                         id=node["id"],
-                        vector=[0.0],
+                        vector=[0],
                         payload=node,
                     )
                 ],
@@ -92,7 +92,7 @@ class HierarchicalDataManager:
                 points=[
                     PointStruct(
                         id=None,
-                        vector=[0.0],  # Dummy vector
+                        vector=[0],  # Dummy vector
                         payload={
                             "type": level,
                             "name": name,
