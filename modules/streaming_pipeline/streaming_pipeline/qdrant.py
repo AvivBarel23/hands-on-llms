@@ -1,6 +1,7 @@
 import os
-from typing import Optional
+from typing import List, Dict, Optional
 
+import openai
 from bytewax.outputs import DynamicOutput, StatelessSink
 from qdrant_client import QdrantClient
 from qdrant_client.http.api_client import UnexpectedResponse
@@ -9,13 +10,6 @@ from qdrant_client.models import PointStruct
 
 from streaming_pipeline import constants
 from streaming_pipeline.models import Document
-
-import os
-from typing import List, Dict, Optional
-from qdrant_client.models import PointStruct
-from qdrant_client.http.models import VectorParams, Distance
-from qdrant_client import QdrantClient
-import openai
 
 class HierarchicalDataManager:
 
@@ -37,9 +31,6 @@ class HierarchicalDataManager:
 
     def classify_with_gpt(self, text: str, options: List[str], level: str) -> str:
         #TODO: What happens when there is no match (like at the beginning when the sectors are empty for example)
-        """
-        Use GPT to classify text into one of the given options.
-        """
         prompt = (
             f"Based on the following text, decide which {level} it belongs to:\n\n"
             f"Text: {text}\n\n"
@@ -52,12 +43,13 @@ class HierarchicalDataManager:
             max_tokens=20,
             temperature=0.0
         )
-        return response.choices[0].text.strip().replace(".", "")
+        classification = response.choices[0].text.strip().replace(".", "")
+        if classification not in options:
+            # Optionally, treat it as new
+            return classification
+        return classification
 
-    def get_hierarchy_node(self, name: str, level: str) -> Optional[Dict]:
-        """
-        Retrieve a hierarchy node by its name and level.
-        """
+    def get_hierarchy_node(self, name: str, level: str) -> Optional[ScoredPoint]:
         results = self.client.search(
             collection_name=self.hierarchy_collection,
             query_vector=[1.0],  # Dummy query vector
@@ -69,7 +61,7 @@ class HierarchicalDataManager:
             },
             limit=1,
         )
-        return results[0].payload if results else None
+        return results[0] if results else None
 
     def save_hierarchy_node(self, name: str, level: str, parent: Optional[str] = None, children: Optional[List[str]] = None):
         #TODO: After fixing the classify_with_gpt function, make sure this works, which means create a new level if doesn't exist, and inserts to existing level if exists
@@ -85,7 +77,7 @@ class HierarchicalDataManager:
                 points=[
                     PointStruct(
                         id=node["id"],
-                        vector=[0.0],  # Dummy vector
+                        vector=[0.0],
                         payload=node,
                     )
                 ],
@@ -160,9 +152,11 @@ class HierarchicalDataManager:
         # Step 4: Save the document in its specific Qdrant collection
         collection_name = f"{sector}_{subject}_{event_type}".lower().replace(" ", "_")
         if not self.client.get_collection(collection_name):
+            # Use document.embeddings to figure out the vector size
+            vector_size = len(document.embeddings[0]) if document.embeddings else 768  # or any default
             self.client.create_collection(
                 collection_name,
-                vectors_config=VectorParams(size=len(vector), distance=Distance.COSINE),
+                vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
             )
 
             #TODO: add to the final tree!
