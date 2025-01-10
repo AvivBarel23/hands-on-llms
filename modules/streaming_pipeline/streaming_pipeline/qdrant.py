@@ -36,6 +36,7 @@ class HierarchicalDataManager:
 
 
     def classify_with_gpt(self, text: str, options: List[str], level: str) -> str:
+        #TODO: What happens when there is no match (like at the beginning when the sectors are empty for example)
         """
         Use GPT to classify text into one of the given options.
         """
@@ -51,7 +52,7 @@ class HierarchicalDataManager:
             max_tokens=20,
             temperature=0.0
         )
-        return response.choices[0].text.strip()
+        return response.choices[0].text.strip().replace(".", "")
 
     def get_hierarchy_node(self, name: str, level: str) -> Optional[Dict]:
         """
@@ -71,6 +72,7 @@ class HierarchicalDataManager:
         return results[0].payload if results else None
 
     def save_hierarchy_node(self, name: str, level: str, parent: Optional[str] = None, children: Optional[List[str]] = None):
+        #TODO: After fixing the classify_with_gpt function, make sure this works, which means create a new level if doesn't exist, and inserts to existing level if exists
         """
         Save or update a hierarchy node.
         """
@@ -117,8 +119,7 @@ class HierarchicalDataManager:
             node["name"] for node in self.client.search(
                 collection_name=self.hierarchy_collection,
                 query_vector=[1.0],
-                filter={"must": [{"key": "type", "match": {"value": "sector"}}]},
-                limit=100,
+                filter={"must": [{"key": "type", "match": {"value": "sector"}}]}
             )
         ]
         sector = self.classify_with_gpt(document_text, sectors, "sector")
@@ -134,8 +135,7 @@ class HierarchicalDataManager:
                         {"key": "type", "match": {"value": "subject"}},
                         {"key": "parent", "match": {"value": sector}},
                     ]
-                },
-                limit=100,
+                }
             )
         ]
         subject = self.classify_with_gpt(document_text, subjects, "subject")
@@ -151,8 +151,7 @@ class HierarchicalDataManager:
                         {"key": "type", "match": {"value": "event_type"}},
                         {"key": "parent", "match": {"value": subject}},
                     ]
-                },
-                limit=100,
+                }
             )
         ]
         event_type = self.classify_with_gpt(document_text, event_types, "event type")
@@ -165,6 +164,10 @@ class HierarchicalDataManager:
                 collection_name,
                 vectors_config=VectorParams(size=len(vector), distance=Distance.COSINE),
             )
+
+            #TODO: add to the final tree!
+        
+        #Baseline code!!! don't modify the logic (unless adding something necessary)
         ids, payloads = document.to_payloads()
         points = [
             PointStruct(id=idx, vector=vector, payload=_payload)
