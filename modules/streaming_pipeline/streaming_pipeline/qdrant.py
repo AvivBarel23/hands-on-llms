@@ -95,6 +95,7 @@ class HierarchicalDataManager:
             f"Options: {', '.join(options)}\n\n"
             f"Only return the name of the {level}."
         )
+        debug_print(prompt)
         response = openai.Completion.create(
             model="text-davinci-003",
             prompt=prompt,
