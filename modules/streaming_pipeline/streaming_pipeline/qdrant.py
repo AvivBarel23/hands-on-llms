@@ -101,7 +101,9 @@ class HierarchicalDataManager:
             max_tokens=20,
             temperature=0.0
         )
+        debug_print("[DEBUG] classify_with_gpt before ")
         classification = response.choices[0].text.strip().replace(".", "")
+        debug_print("[DEBUG] classify_with_gpt after")
         debug_print(f"[DEBUG] GPT classification result: {classification}")
 
         if classification not in options:
