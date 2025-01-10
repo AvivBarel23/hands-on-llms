@@ -287,3 +287,5 @@ class QdrantVectorSink(StatelessSink):
         print("[DEBUG] QdrantVectorSink.write called with a Document")
         self._openai_client.save_data(document)
         print("[DEBUG] Document saved to hierarchical data store!")
+
+
