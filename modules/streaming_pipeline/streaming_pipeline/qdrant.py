@@ -1,4 +1,6 @@
 import os
+import inspect
+import datetime
 from typing import List, Dict, Optional
 
 import openai
@@ -14,20 +16,29 @@ from qdrant_client.conversions.common_types import ScoredPoint
 from streaming_pipeline import constants
 from streaming_pipeline.models import Document
 
-
-# 1. Set up a global log file in the SAME directory as this Python file.
+# -- Global path to log in the same directory as this file
 LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "debug.log")
 
 def debug_print(msg: str):
     """
-    Append a debug message to the debug.log file instead of printing to console.
+    Logs debug messages to `debug.log` in this directory,
+    including timestamp, filename, and line number.
     """
+    # Capture call frame info (who called debug_print)
+    frame_info = inspect.stack()[1]
+    filename = os.path.basename(frame_info.filename)
+    lineno = frame_info.lineno
+
+    # Optional timestamp
+    now_str = datetime.datetime.now().isoformat()
+
+    formatted_msg = f"[{now_str}][{filename}:{lineno}] {msg}"
     with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
-        f.write(msg + "\n")
+        f.write(formatted_msg + "\n")
 
 
 def build_qdrant_client(url: Optional[str] = None, api_key: Optional[str] = None):
-    debug_print("[DEBUG] build_qdrant_client called")
+    debug_print("[DEBUG] build_qdrant_client START")
 
     if url is None:
         try:
@@ -47,12 +58,14 @@ def build_qdrant_client(url: Optional[str] = None, api_key: Optional[str] = None
 
     client = QdrantClient(url, api_key=api_key)
     debug_print("[DEBUG] QdrantClient built successfully")
+
+    debug_print("[DEBUG] build_qdrant_client END")
     return client
 
 
 class HierarchicalDataManager:
     def __init__(self, qdrant_client: QdrantClient):
-        debug_print("[DEBUG] HierarchicalDataManager.__init__ called")
+        debug_print("[DEBUG] HierarchicalDataManager.__init__ START")
         self.client = qdrant_client
         openai.api_key = os.environ["OPENAI_API_KEY"]
         self.hierarchy_collection = "hierarchy_tree"
@@ -69,10 +82,11 @@ class HierarchicalDataManager:
                 vectors_config=VectorParams(size=1, distance=Distance.COSINE),
             )
 
+        debug_print("[DEBUG] HierarchicalDataManager.__init__ END")
+
 
     def classify_with_gpt(self, text: str, options: List[str], level: str) -> str:
-        # TODO: What happens when there is no match (like at the beginning when the sectors are empty)
-        debug_print("[DEBUG] classify_with_gpt called")
+        debug_print("[DEBUG] classify_with_gpt START")
         debug_print(f"[DEBUG] text='{text[:50]}...' options={options} level={level}")
 
         prompt = (
@@ -94,12 +108,17 @@ class HierarchicalDataManager:
             debug_print(
                 f"[DEBUG] classification '{classification}' not in existing options => treating as new"
             )
+            debug_print("[DEBUG] classify_with_gpt END (NEW LABEL)")
             return classification
+
+        debug_print("[DEBUG] classify_with_gpt END (EXISTING LABEL)")
         return classification
 
 
     def get_hierarchy_node(self, name: str, level: str) -> Optional[ScoredPoint]:
-        debug_print(f"[DEBUG] get_hierarchy_node called with name='{name}', level='{level}'")
+        debug_print("[DEBUG] get_hierarchy_node START")
+        debug_print(f"[DEBUG] name='{name}', level='{level}'")
+
         results = self.client.search(
             collection_name=self.hierarchy_collection,
             query_vector=[1],  # Dummy query vector
@@ -115,21 +134,24 @@ class HierarchicalDataManager:
             debug_print("[DEBUG] Found matching node(s). Returning the first one.")
         else:
             debug_print("[DEBUG] No matching node found.")
+
+        debug_print("[DEBUG] get_hierarchy_node END")
         return results[0] if results else None
 
 
-    def save_hierarchy_node(self, name: str, level: str,
+    def save_hierarchy_node(self,
+                            name: str,
+                            level: str,
                             parent: Optional[str] = None,
                             children: Optional[List[str]] = None):
-        """
-        Save or update a hierarchy node.
-        """
-        debug_print(f"[DEBUG] save_hierarchy_node called with "
-                    f"name='{name}', level='{level}', parent='{parent}', children={children}")
+        debug_print("[DEBUG] save_hierarchy_node START")
+        debug_print(
+            f"[DEBUG] name='{name}', level='{level}', parent='{parent}', children={children}"
+        )
+
         node = self.get_hierarchy_node(name, level)
         if node:
             debug_print("[DEBUG] Node exists; updating existing node.")
-            # node.payload is the existing payload
             payload = node.payload
             payload["children"] = list(set(payload.get("children", []) + (children or [])))
             self.client.upsert(
@@ -160,12 +182,11 @@ class HierarchicalDataManager:
                 ],
             )
 
+        debug_print("[DEBUG] save_hierarchy_node END")
+
 
     def save_data(self, document):
-        """
-        Save a document in the proper hierarchical structure.
-        """
-        debug_print("[DEBUG] save_data called.")
+        debug_print("[DEBUG] save_data START")
         document_text = ' '.join(document.text)
         debug_print("[DEBUG] Full document text: " + document_text[:100] + "...")
 
@@ -230,7 +251,7 @@ class HierarchicalDataManager:
                 vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
             )
             debug_print("[DEBUG] Created new collection with vector_size=" + str(vector_size))
-            # TODO: add to the final tree!
+            # TODO: add to the final tree if needed
 
         debug_print("[DEBUG] Upserting the document's embeddings...")
         ids, payloads = document.to_payloads()
@@ -241,40 +262,35 @@ class HierarchicalDataManager:
         self.client.upsert(collection_name=collection_name, points=points)
         debug_print(f"[DEBUG] Document saved successfully in {collection_name}")
 
+        debug_print("[DEBUG] save_data END")
+
 
 class QdrantVectorSink(StatelessSink):
-    """
-    A sink that writes document embeddings to a Qdrant collection.
-    """
-
     def __init__(
         self,
         client: QdrantClient,
         collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
     ):
-        debug_print("[DEBUG] QdrantVectorSink.__init__ called")
+        debug_print("[DEBUG] QdrantVectorSink.__init__ START")
         self._collection_name = collection_name
         self._openai_client = HierarchicalDataManager(client)
+        debug_print("[DEBUG] QdrantVectorSink.__init__ END")
 
     def write(self, document: Document):
-        debug_print("[DEBUG] QdrantVectorSink.write called with a Document")
+        debug_print("[DEBUG] QdrantVectorSink.write START")
         self._openai_client.save_data(document)
         debug_print("[DEBUG] Document saved to hierarchical data store!")
+        debug_print("[DEBUG] QdrantVectorSink.write END")
 
 
 class QdrantVectorOutput(DynamicOutput):
-    """
-    A class representing a Qdrant vector output,
-    for at-least-once message processing.
-    """
-
     def __init__(
         self,
         vector_size: int,
         collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
         client: Optional[QdrantClient] = None,
     ):
-        debug_print("[DEBUG] QdrantVectorOutput.__init__ called")
+        debug_print("[DEBUG] QdrantVectorOutput.__init__ START")
         self._collection_name = collection_name
         self._vector_size = vector_size
 
@@ -297,10 +313,10 @@ class QdrantVectorOutput(DynamicOutput):
                 optimizers_config=OptimizersConfigDiff(max_optimization_threads=1),
             )
 
+        debug_print("[DEBUG] QdrantVectorOutput.__init__ END")
+
     def build(self, worker_index, worker_count):
-        """
-        Called by Bytewax to build a sink for each worker.
-        Returns a QdrantVectorSink instance.
-        """
-        debug_print(f"[DEBUG] QdrantVectorOutput.build called on worker {worker_index} / {worker_count}")
-        return QdrantVectorSink(self.client, self._collection_name)
+        debug_print(f"[DEBUG] QdrantVectorOutput.build START on worker {worker_index}/{worker_count}")
+        sink = QdrantVectorSink(self.client, self._collection_name)
+        debug_print("[DEBUG] QdrantVectorOutput.build END - returning sink")
+        return sink
