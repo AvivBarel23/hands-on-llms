@@ -7,6 +7,9 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.api_client import UnexpectedResponse
 from qdrant_client.http.models import Distance, VectorParams, OptimizersConfigDiff
 from qdrant_client.models import PointStruct
+from qdrant_client.models import ScoredPoint
+from qdrant_client.conversions.common_types import ScoredPoint
+
 
 from streaming_pipeline import constants
 from streaming_pipeline.models import Document
