@@ -7,33 +7,39 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.api_client import UnexpectedResponse
 from qdrant_client.http.models import Distance, VectorParams, OptimizersConfigDiff
 from qdrant_client.models import PointStruct
+# Check which ScoredPoint import actually works for your Qdrant version
 from qdrant_client.models import ScoredPoint
 from qdrant_client.conversions.common_types import ScoredPoint
-
 
 from streaming_pipeline import constants
 from streaming_pipeline.models import Document
 
-class HierarchicalDataManager:
 
+class HierarchicalDataManager:
     def __init__(self, qdrant_client: QdrantClient):
+        print("[DEBUG] HierarchicalDataManager.__init__ called")
         self.client = qdrant_client
         openai.api_key = os.environ["OPENAI_API_KEY"]
         self.hierarchy_collection = "hierarchy_tree"
 
         # Ensure the hierarchy collection exists
         try:
+            print(f"[DEBUG] Checking collection: {self.hierarchy_collection}")
             self.client.get_collection(collection_name=self.hierarchy_collection)
+            print("[DEBUG] Hierarchy collection exists.")
         except Exception:
-            # Create the hierarchy collection if it doesn't exist
+            print("[DEBUG] Hierarchy collection does NOT exist; creating it.")
             self.client.create_collection(
                 collection_name=self.hierarchy_collection,
-                vectors_config=VectorParams(size=1, distance=Distance.COSINE),  # Dummy vector size
+                vectors_config=VectorParams(size=1, distance=Distance.COSINE),
             )
 
 
     def classify_with_gpt(self, text: str, options: List[str], level: str) -> str:
-        #TODO: What happens when there is no match (like at the beginning when the sectors are empty for example)
+        # TODO: What happens when there is no match (like at the beginning when the sectors are empty)
+        print("[DEBUG] classify_with_gpt called")
+        print(f"[DEBUG] text='{text[:50]}...' options={options} level={level}")
+
         prompt = (
             f"Based on the following text, decide which {level} it belongs to:\n\n"
             f"Text: {text}\n\n"
@@ -47,12 +53,16 @@ class HierarchicalDataManager:
             temperature=0.0
         )
         classification = response.choices[0].text.strip().replace(".", "")
+        print(f"[DEBUG] GPT classification result: {classification}")
+
         if classification not in options:
-            # Optionally, treat it as new
+            print(f"[DEBUG] classification '{classification}' not in existing options => treating as new")
             return classification
         return classification
 
+
     def get_hierarchy_node(self, name: str, level: str) -> Optional[ScoredPoint]:
+        print(f"[DEBUG] get_hierarchy_node called with name='{name}', level='{level}'")
         results = self.client.search(
             collection_name=self.hierarchy_collection,
             query_vector=[1],  # Dummy query vector
@@ -64,29 +74,36 @@ class HierarchicalDataManager:
             },
             limit=1,
         )
+        if results:
+            print("[DEBUG] Found matching node(s). Returning the first one.")
+        else:
+            print("[DEBUG] No matching node found.")
         return results[0] if results else None
 
+
     def save_hierarchy_node(self, name: str, level: str, parent: Optional[str] = None, children: Optional[List[str]] = None):
-        #TODO: After fixing the classify_with_gpt function, make sure this works, which means create a new level if doesn't exist, and inserts to existing level if exists
         """
         Save or update a hierarchy node.
         """
+        print(f"[DEBUG] save_hierarchy_node called with name='{name}', level='{level}', parent='{parent}', children={children}")
         node = self.get_hierarchy_node(name, level)
         if node:
-            # Update the existing node
-            node["children"] = list(set(node.get("children", []) + (children or [])))
+            print("[DEBUG] Node exists; updating existing node.")
+            # node.payload is the existing payload
+            payload = node.payload
+            payload["children"] = list(set(payload.get("children", []) + (children or [])))
             self.client.upsert(
                 collection_name=self.hierarchy_collection,
                 points=[
                     PointStruct(
-                        id=node["id"],
+                        id=node.id,  # use the actual scored point ID
                         vector=[0],
-                        payload=node,
+                        payload=payload,
                     )
                 ],
             )
         else:
-            # Create a new node
+            print("[DEBUG] Node does not exist; creating new node.")
             self.client.upsert(
                 collection_name=self.hierarchy_collection,
                 points=[
@@ -103,11 +120,14 @@ class HierarchicalDataManager:
                 ],
             )
 
+
     def save_data(self, document):
         """
         Save a document in the proper hierarchical structure.
         """
+        print("[DEBUG] save_data called.")
         document_text = ' '.join(document.text)
+        print("[DEBUG] Full document text:", document_text[:100], "...")
 
         # Step 1: Sector Classification
         sectors = [
@@ -117,7 +137,9 @@ class HierarchicalDataManager:
                 filter={"must": [{"key": "type", "match": {"value": "sector"}}]}
             )
         ]
+        print("[DEBUG] Found existing sectors:", sectors)
         sector = self.classify_with_gpt(document_text, sectors, "sector")
+        print(f"[DEBUG] sector => '{sector}'")
         # self.save_hierarchy_node(name=sector, level="sector")
 
         # Step 2: Company/Subject Classification
@@ -133,7 +155,9 @@ class HierarchicalDataManager:
                 }
             )
         ]
+        print("[DEBUG] Found existing subjects under sector:", subjects)
         subject = self.classify_with_gpt(document_text, subjects, "subject")
+        print(f"[DEBUG] subject => '{subject}'")
         # self.save_hierarchy_node(name=subject, level="subject", parent=sector)
 
         # Step 3: Event Type Classification
@@ -149,41 +173,39 @@ class HierarchicalDataManager:
                 }
             )
         ]
+        print("[DEBUG] Found existing event_types under subject:", event_types)
         event_type = self.classify_with_gpt(document_text, event_types, "event type")
+        print(f"[DEBUG] event_type => '{event_type}'")
         # self.save_hierarchy_node(name=event_type, level="event_type", parent=subject)
 
         # Step 4: Save the document in its specific Qdrant collection
         collection_name = f"{sector}_{subject}_{event_type}".lower().replace(" ", "_")
+        print(f"[DEBUG] Final collection_name => '{collection_name}'")
+
         if not self.client.get_collection(collection_name):
-            # Use document.embeddings to figure out the vector size
-            vector_size = len(document.embeddings[0]) if document.embeddings else 768  # or any default
+            print(f"[DEBUG] Collection '{collection_name}' does NOT exist; creating.")
+            vector_size = len(document.embeddings[0]) if document.embeddings else 768
             self.client.create_collection(
                 collection_name,
                 vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
             )
+            print("[DEBUG] Created new collection with vector_size=", vector_size)
+            # TODO: add to the final tree!
 
-            #TODO: add to the final tree!
-        
-        #Baseline code!!! don't modify the logic (unless adding something necessary)
+        print("[DEBUG] Upserting the document's embeddings...")
         ids, payloads = document.to_payloads()
         points = [
             PointStruct(id=idx, vector=vector, payload=_payload)
             for idx, vector, _payload in zip(ids, document.embeddings, payloads)
         ]
-
         self.client.upsert(collection_name=collection_name, points=points)
+        print("[DEBUG] Document saved successfully in", collection_name)
+
 
 class QdrantVectorOutput(DynamicOutput):
-    """A class representing a Qdrant vector output.
-
-    This class is used to create a Qdrant vector output, which is a type of dynamic output that supports
-    at-least-once processing. Messages from the resume epoch will be duplicated right after resume.
-
-    Args:
-        vector_size (int): The size of the vector.
-        collection_name (str, optional): The name of the collection.
-            Defaults to constants.VECTOR_DB_OUTPUT_COLLECTION_NAME.
-        client (Optional[QdrantClient], optional): The Qdrant client. Defaults to None.
+    """
+    A class representing a Qdrant vector output,
+    for at-least-once message processing.
     """
 
     def __init__(
@@ -192,6 +214,7 @@ class QdrantVectorOutput(DynamicOutput):
         collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
         client: Optional[QdrantClient] = None,
     ):
+        print("[DEBUG] QdrantVectorOutput.__init__ called")
         self._collection_name = collection_name
         self._vector_size = vector_size
 
@@ -201,52 +224,30 @@ class QdrantVectorOutput(DynamicOutput):
             self.client = build_qdrant_client()
 
         try:
+            print(f"[DEBUG] Checking collection: {self._collection_name}")
             self.client.get_collection(collection_name=self._collection_name)
+            print("[DEBUG] Collection exists. Will not recreate.")
         except (UnexpectedResponse, ValueError):
+            print("[DEBUG] Collection does not exist. Recreating from scratch.")
             self.client.recreate_collection(
                 collection_name=self._collection_name,
                 vectors_config=VectorParams(
                     size=self._vector_size, distance=Distance.COSINE
                 ),
-                # Manuall add this optimizers_config to address issue: https://github.com/iusztinpaul/hands-on-llms/issues/72
-                # qdrant_client.http.exceptions.ResponseHandlingException: 1 validation error for ParsingModel[InlineResponse2005] (for parse_as_type)
-                # obj -> result -> config -> optimizer_config -> max_optimization_threads
-                # none is not an allowed value (type=type_error.none.not_allowed)
                 optimizers_config=OptimizersConfigDiff(max_optimization_threads=1),
             )
 
     def build(self, worker_index, worker_count):
-        """Builds a QdrantVectorSink object.
-
-        Args:
-            worker_index (int): The index of the worker.
-            worker_count (int): The total number of workers.
-
-        Returns:
-            QdrantVectorSink: A QdrantVectorSink object.
         """
-
+        Called by Bytewax to build a sink for each worker.
+        Returns a QdrantVectorSink instance.
+        """
+        print(f"[DEBUG] QdrantVectorOutput.build called on worker {worker_index} / {worker_count}")
         return QdrantVectorSink(self.client, self._collection_name)
 
 
 def build_qdrant_client(url: Optional[str] = None, api_key: Optional[str] = None):
-    """
-    Builds a QdrantClient object with the given URL and API key.
-
-    Args:
-        url (Optional[str]): The URL of the Qdrant server. If not provided,
-            it will be read from the QDRANT_URL environment variable.
-        api_key (Optional[str]): The API key to use for authentication. If not provided,
-            it will be read from the QDRANT_API_KEY environment variable.
-
-    Raises:
-        KeyError: If the QDRANT_URL or QDRANT_API_KEY environment variables are not set
-            and no values are provided as arguments.
-
-    Returns:
-        QdrantClient: A QdrantClient object connected to the specified Qdrant server.
-    """
-
+    print("[DEBUG] build_qdrant_client called")
     if url is None:
         try:
             url = os.environ["QDRANT_URL"]
@@ -264,18 +265,13 @@ def build_qdrant_client(url: Optional[str] = None, api_key: Optional[str] = None
             )
 
     client = QdrantClient(url, api_key=api_key)
-
+    print("[DEBUG] QdrantClient built successfully")
     return client
 
 
 class QdrantVectorSink(StatelessSink):
     """
     A sink that writes document embeddings to a Qdrant collection.
-
-    Args:
-        client (QdrantClient): The Qdrant client to use for writing.
-        collection_name (str, optional): The name of the collection to write to.
-            Defaults to constants.VECTOR_DB_OUTPUT_COLLECTION_NAME.
     """
 
     def __init__(
@@ -283,9 +279,11 @@ class QdrantVectorSink(StatelessSink):
         client: QdrantClient,
         collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
     ):
+        print("[DEBUG] QdrantVectorSink.__init__ called")
         self._collection_name = collection_name
-        self._openai_client=HierarchicalDataManager(client)
+        self._openai_client = HierarchicalDataManager(client)
 
     def write(self, document: Document):
+        print("[DEBUG] QdrantVectorSink.write called with a Document")
         self._openai_client.save_data(document)
-
+        print("[DEBUG] Document saved to hierarchical data store!")
