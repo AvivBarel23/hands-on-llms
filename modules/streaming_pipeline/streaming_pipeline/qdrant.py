@@ -118,7 +118,7 @@ class HierarchicalDataManager:
             )
         ]
         sector = self.classify_with_gpt(document_text, sectors, "sector")
-        self.save_hierarchy_node(name=sector, level="sector")
+        # self.save_hierarchy_node(name=sector, level="sector")
 
         # Step 2: Company/Subject Classification
         subjects = [
@@ -134,7 +134,7 @@ class HierarchicalDataManager:
             )
         ]
         subject = self.classify_with_gpt(document_text, subjects, "subject")
-        self.save_hierarchy_node(name=subject, level="subject", parent=sector)
+        # self.save_hierarchy_node(name=subject, level="subject", parent=sector)
 
         # Step 3: Event Type Classification
         event_types = [
@@ -150,7 +150,7 @@ class HierarchicalDataManager:
             )
         ]
         event_type = self.classify_with_gpt(document_text, event_types, "event type")
-        self.save_hierarchy_node(name=event_type, level="event_type", parent=subject)
+        # self.save_hierarchy_node(name=event_type, level="event_type", parent=subject)
 
         # Step 4: Save the document in its specific Qdrant collection
         collection_name = f"{sector}_{subject}_{event_type}".lower().replace(" ", "_")
