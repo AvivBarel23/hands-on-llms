@@ -96,7 +96,7 @@ class HierarchicalDataManager:
             f"Only return the name of the {level}."
         )
         response = openai.Completion.create(
-            engine="text-davinci-003",
+            model="text-davinci-003",
             prompt=prompt,
             max_tokens=20,
             temperature=0.0
