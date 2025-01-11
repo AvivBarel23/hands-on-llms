@@ -35,6 +35,22 @@ def debug_print(msg: str):
 
 
 def build_qdrant_client(url: Optional[str] = None, api_key: Optional[str] = None):
+    """
+    Builds a QdrantClient object with the given URL and API key.
+
+    Args:
+        url (Optional[str]): The URL of the Qdrant server. If not provided,
+            it will be read from the QDRANT_URL environment variable.
+        api_key (Optional[str]): The API key to use for authentication. If not provided,
+            it will be read from the QDRANT_API_KEY environment variable.
+
+    Raises:
+        KeyError: If the QDRANT_URL or QDRANT_API_KEY environment variables are not set
+            and no values are provided as arguments.
+
+    Returns:
+        QdrantClient: A QdrantClient object connected to the specified Qdrant server.
+    """
     debug_print("[DEBUG] build_qdrant_client START")
 
     if url is None:
@@ -90,7 +106,7 @@ class HierarchicalDataManager:
             f"Based on the following text, decide which {level} it belongs to:\n\n"
             f"Text: {text}\n\n"
             f"Options: {', '.join(options)}\n\n"
-            f"Only return the name of the {level}."
+            f"Only return the name of the {level}. If there is no correct option please suggest one"
         )
         debug_print(prompt)
         response = openai.Completion.create(
@@ -266,6 +282,15 @@ class HierarchicalDataManager:
 
 
 class QdrantVectorSink(StatelessSink):
+    """
+    A sink that writes document embeddings to a Qdrant collection.
+
+    Args:
+        client (QdrantClient): The Qdrant client to use for writing.
+        collection_name (str, optional): The name of the collection to write to.
+            Defaults to constants.VECTOR_DB_OUTPUT_COLLECTION_NAME.
+    """
+
     def __init__(
         self,
         client: QdrantClient,
