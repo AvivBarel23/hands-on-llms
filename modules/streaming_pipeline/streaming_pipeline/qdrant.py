@@ -110,12 +110,12 @@ class HierarchicalDataManager:
                 f"Only return the name of the {level}. If there is no correct option please suggest one"
             )
             debug_print(prompt)
-            response = openai.Completion.create(
+            response = (openai.completions.create(
                 model="text-davinci-003",
                 prompt=prompt,
                 max_tokens=20,
                 temperature=0.0
-            )
+            ))
             debug_print("[DEBUG] classify_with_gpt before ")
             classification = response.choices[0].text.strip().replace(".", "")
             debug_print("[DEBUG] classify_with_gpt after")
