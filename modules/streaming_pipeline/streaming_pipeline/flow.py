@@ -9,12 +9,12 @@ from bytewax.testing import TestingInput
 from pydantic import parse_obj_as
 from qdrant_client import QdrantClient
 
-from streaming_pipeline import mocked
-from streaming_pipeline.alpaca_batch import AlpacaNewsBatchInput
-from streaming_pipeline.alpaca_stream import AlpacaNewsStreamInput
-from streaming_pipeline.embeddings import EmbeddingModelSingleton
-from streaming_pipeline.models import NewsArticle
-from streaming_pipeline.qdrant import QdrantVectorOutput
+import mocked
+from alpaca_batch import AlpacaNewsBatchInput
+from alpaca_stream import AlpacaNewsStreamInput
+from embeddings import EmbeddingModelSingleton
+from models import NewsArticle
+from qdrant import QdrantVectorOutput
 
 
 def build(

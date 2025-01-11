@@ -1,20 +1,16 @@
 import os
 import inspect
 import datetime
-from typing import List, Dict, Optional
-
 import openai
+from typing import List, Optional
 from bytewax.outputs import DynamicOutput, StatelessSink
 from qdrant_client import QdrantClient
 from qdrant_client.http.api_client import UnexpectedResponse
 from qdrant_client.http.models import Distance, VectorParams, OptimizersConfigDiff
 from qdrant_client.models import PointStruct
-# Check which ScoredPoint import actually works for your Qdrant version
-from qdrant_client.models import ScoredPoint
 from qdrant_client.conversions.common_types import ScoredPoint
-
-from streaming_pipeline import constants
-from streaming_pipeline.models import Document
+import constants
+from models import Document
 
 # -- Global path to log in the same directory as this file
 LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "debug.log")
