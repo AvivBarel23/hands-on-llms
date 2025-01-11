@@ -99,36 +99,46 @@ class HierarchicalDataManager:
 
 
     def classify_with_gpt(self, text: str, options: List[str], level: str) -> str:
-        debug_print("[DEBUG] classify_with_gpt START")
-        debug_print(f"[DEBUG] text='{text[:50]}...' options={options} level={level}")
+        try :
+            debug_print("[DEBUG] classify_with_gpt START")
+            debug_print(f"[DEBUG] text='{text[:50]}...' options={options} level={level}")
 
-        prompt = (
-            f"Based on the following text, decide which {level} it belongs to:\n\n"
-            f"Text: {text}\n\n"
-            f"Options: {', '.join(options)}\n\n"
-            f"Only return the name of the {level}. If there is no correct option please suggest one"
-        )
-        debug_print(prompt)
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=prompt,
-            max_tokens=20,
-            temperature=0.0
-        )
-        debug_print("[DEBUG] classify_with_gpt before ")
-        classification = response.choices[0].text.strip().replace(".", "")
-        debug_print("[DEBUG] classify_with_gpt after")
-        debug_print(f"[DEBUG] GPT classification result: {classification}")
-
-        if classification not in options:
-            debug_print(
-                f"[DEBUG] classification '{classification}' not in existing options => treating as new"
+            prompt = (
+                f"Based on the following text, decide which {level} it belongs to:\n\n"
+                f"Text: {text}\n\n"
+                f"Options: {', '.join(options)}\n\n"
+                f"Only return the name of the {level}. If there is no correct option please suggest one"
             )
-            debug_print("[DEBUG] classify_with_gpt END (NEW LABEL)")
-            return classification
+            debug_print(prompt)
+            response = openai.Completion.create(
+                model="text-davinci-003",
+                prompt=prompt,
+                max_tokens=20,
+                temperature=0.0
+            )
+            debug_print("[DEBUG] classify_with_gpt before ")
+            classification = response.choices[0].text.strip().replace(".", "")
+            debug_print("[DEBUG] classify_with_gpt after")
+            debug_print(f"[DEBUG] GPT classification result: {classification}")
 
-        debug_print("[DEBUG] classify_with_gpt END (EXISTING LABEL)")
-        return classification
+            if classification not in options:
+                debug_print(
+                    f"[DEBUG] classification '{classification}' not in existing options => treating as new"
+                )
+                debug_print("[DEBUG] classify_with_gpt END (NEW LABEL)")
+                return classification
+
+            debug_print("[DEBUG] classify_with_gpt END (EXISTING LABEL)")
+            return classification
+        except openai.error.OpenAIError as e:
+            # Catch OpenAI API errors
+            debug_print(
+                f"[DEBUG] OpenAI API error: {e}"
+            )
+            print()
+        except Exception as e:
+            # Catch other types of exceptions
+            debug_print(f" [DEBUG] An error occurred: {e}")
 
 
     def get_hierarchy_node(self, name: str, level: str) -> Optional[ScoredPoint]:
