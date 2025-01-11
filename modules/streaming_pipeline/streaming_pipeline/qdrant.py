@@ -9,8 +9,9 @@ from qdrant_client.http.api_client import UnexpectedResponse
 from qdrant_client.http.models import Distance, VectorParams, OptimizersConfigDiff
 from qdrant_client.models import PointStruct
 from qdrant_client.conversions.common_types import ScoredPoint
-import constants
-from models import Document
+
+from streaming_pipeline import constants
+from streaming_pipeline.models import Document
 
 # -- Global path to log in the same directory as this file
 LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "debug.log")
