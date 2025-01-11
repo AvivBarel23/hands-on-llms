@@ -111,7 +111,7 @@ class HierarchicalDataManager:
             )
             debug_print(prompt)
             response = (openai.completions.create(
-                model="text-davinci-003",
+                model="gpt-4",
                 prompt=prompt,
                 max_tokens=20,
                 temperature=0.0
