@@ -130,12 +130,7 @@ class HierarchicalDataManager:
 
             debug_print("[DEBUG] classify_with_gpt END (EXISTING LABEL)")
             return classification
-        except openai.error.OpenAIError as e:
-            # Catch OpenAI API errors
-            debug_print(
-                f"[DEBUG] OpenAI API error: {e}"
-            )
-            print()
+
         except Exception as e:
             # Catch other types of exceptions
             debug_print(f" [DEBUG] An error occurred: {e}")
