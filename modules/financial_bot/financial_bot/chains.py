@@ -1,6 +1,7 @@
 import os
 import time
 from typing import Any, Dict, List, Optional
+from scipy.spatial.distance import cosine
 
 import openai
 import qdrant_client
@@ -126,14 +127,14 @@ class ContextExtractorChain(Chain):
             f"Given the query '{query}', which of these {level}s is it most related to? "
             f"Return up to {top_k} options ranked by relevance: {', '.join(options)}"
         )
-        response = openai.Completion.create(
-            engine="text-davinci-003",
+        response = (openai.completions.create(
+            model="gpt-4",
             prompt=prompt,
-            max_tokens=100,  # Ensuring the response size is limited
-            n=1,             # Single completion
-            stop=None,       # No specific stopping sequence
-            temperature=0.7, # Controlled randomness
-        )
+            max_tokens=100,
+            stop=None,
+            n=1,
+            temperature=0.7,
+        ))
         classified_options = response.choices[0].text.strip().split("\n")
         return [opt.strip() for opt in classified_options][:top_k]
 
@@ -202,8 +203,19 @@ class ContextExtractorChain(Chain):
                         limit=self.top_k,
                     )
                     results.extend(data)
+            # Step 5: Rank results based on cosine similarity with the query vector
+    # Assuming each result in `data` has an embedding vector (e.g., in result['vector'])
+        results_with_similarity = []
+        for doc in results:
+            doc_vector = doc['vector']  # Assuming the document has a 'vector' key for its embedding
+            similarity = 1 - cosine(query_vector, doc_vector)  # Cosine similarity
+            results_with_similarity.append((doc, similarity))
 
-        return results
+        # Step 6: Sort the results based on similarity (highest first)
+        results_with_similarity.sort(key=lambda x: x[1], reverse=True)
+
+        # Step 7: Return top_k most similar documents
+        return [doc for doc, _ in results_with_similarity[:top_k]]
 
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         openai.api_key = os.environ["OPENAI_API_KEY"]
