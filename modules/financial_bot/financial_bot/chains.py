@@ -110,7 +110,8 @@ class ContextExtractorChain(Chain):
     @property
     def output_keys(self) -> List[str]:
         return ["context"]
-    def classify_hierarchy_level(self, query: str, options: List[str], level: str, top_k: int = 3) -> List[str]:
+
+    def classify_hierarchy_level(self, query: str, options: List[str], level: str) -> str:
         """
         Classifies a query into the top-k options at a given hierarchy level.
 
@@ -125,7 +126,7 @@ class ContextExtractorChain(Chain):
         """
         prompt = (
             f"Given the query '{query}', which of these {level}s is it most related to? "
-            f"Return up to {top_k} options ranked by relevance: {', '.join(options)}"
+            f"Options: {', '.join(options)}"
         )
         response = (openai.completions.create(
             model="gpt-4",
@@ -135,8 +136,8 @@ class ContextExtractorChain(Chain):
             n=1,
             temperature=0.7,
         ))
-        classified_options = response.choices[0].text.strip().split("\n")
-        return [opt.strip() for opt in classified_options][:top_k]
+        classification = response.choices[0].text.strip().replace(".", "")
+        return classification
 
 
     def get_current_level_options(self, level: str, parent: Optional[str] = None) -> List[str]:
@@ -157,16 +158,15 @@ class ContextExtractorChain(Chain):
         options = [
             node.payload["name"]
             for node in self.vector_store.search(
-                collection_name=self.hierarchy_collection,
+                collection_name=self.vector_collection,
                 query_vector=[0.0],  # Dummy vector as we are using filters
-                query_filter=query_filter,
-                limit=100,
+                query_filter=query_filter
             )
         ]
         return options
 
 
-    def search(self, query: str, query_vector: List[float], top_k: int = 10):
+    def search(self, query: str, query_vector: List[float], top_k):
         """
         Searches for the most relevant data based on the hierarchical structure with top-k branch exploration.
 
@@ -178,44 +178,22 @@ class ContextExtractorChain(Chain):
         Returns:
             List[dict]: List of relevant data points.
         """
-        results = []
-
-        # Step 1: Fetch all sectors and classify the query into top-k sectors
         sectors = self.get_current_level_options("sector")
-        top_sectors = self.classify_hierarchy_level(query, sectors, "sector", top_k)
+        sector = self.classify_hierarchy_level(query, sectors, "sector")
 
-        for sector in top_sectors:
-            # Step 2: Fetch all subjects under the sector and classify into top-k subjects
-            subjects = self.get_current_level_options("subject", parent=sector)
-            top_subjects = self.classify_hierarchy_level(query, subjects, "subject", top_k)
+        subjects = self.get_current_level_options("subject", parent=sector)
+        subject = self.classify_hierarchy_level(query, subjects, "subject")
 
-            for subject in top_subjects:
-                # Step 3: Fetch all event types under the subject and classify into top-k event types
-                event_types = self.get_current_level_options("event_type", parent=subject)
-                top_event_types = self.classify_hierarchy_level(query, event_types, "event_type", top_k)
+        event_types = self.get_current_level_options("event_type", parent=subject)
+        event_type = self.classify_hierarchy_level(query, event_types, "event_type")
 
-                for event_type in top_event_types:
-                    # Step 4: Fetch data from the identified hierarchy path
-                    collection_name = f"{sector}_{subject}_{event_type}".lower().replace(" ", "_")
-                    data = self.vector_store.search(
-                        collection_name=collection_name,
-                        query_vector=query_vector,
-                        limit=self.top_k,
-                    )
-                    results.extend(data)
-            # Step 5: Rank results based on cosine similarity with the query vector
-    # Assuming each result in `data` has an embedding vector (e.g., in result['vector'])
-        results_with_similarity = []
-        for doc in results:
-            doc_vector = doc['vector']  # Assuming the document has a 'vector' key for its embedding
-            similarity = 1 - cosine(query_vector, doc_vector)  # Cosine similarity
-            results_with_similarity.append((doc, similarity))
-
-        # Step 6: Sort the results based on similarity (highest first)
-        results_with_similarity.sort(key=lambda x: x[1], reverse=True)
-
-        # Step 7: Return top_k most similar documents
-        return [doc for doc, _ in results_with_similarity[:top_k]]
+        collection_name = f"alpaca_financial_news_{sector}_{subject}_{event_type}".lower().replace(" ", "_")
+        data = self.vector_store.search(
+            collection_name=collection_name,
+            query_vector=query_vector,
+            limit=self.top_k,
+        )
+        return data
 
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         openai.api_key = os.environ["OPENAI_API_KEY"]
