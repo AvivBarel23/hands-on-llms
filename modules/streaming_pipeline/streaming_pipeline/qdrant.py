@@ -2,6 +2,7 @@ import os
 import inspect
 import datetime
 import openai
+import time
 from typing import List, Optional
 from bytewax.outputs import DynamicOutput, StatelessSink
 from qdrant_client import QdrantClient
@@ -99,41 +100,57 @@ class HierarchicalDataManager:
 
 
     def classify_with_gpt(self, text: str, options: List[str], level: str) -> str:
-        try :
-            debug_print("[DEBUG] classify_with_gpt START")
-            debug_print(f"[DEBUG] text='{text[:50]}...' options={options} level={level}")
+        max_retries = 5  # Maximum number of retry attempts
+        retry_delay = 2  # Initial delay between retries (in seconds)
+        attempt = 0
 
-            prompt = (
-                f"Based on the following text, decide which {level} it belongs to:\n\n"
-                f"Text: {text}\n\n"
-                f"Options: {', '.join(options)}\n\n"
-                f"Only return the name of the {level}. If there is no correct option please suggest one"
-            )
-            debug_print(prompt)
-            response = (openai.completions.create(
-                model="gpt-4",
-                prompt=prompt,
-                max_tokens=20,
-                temperature=0.0
-            ))
-            debug_print("[DEBUG] classify_with_gpt before ")
-            classification = response.choices[0].text.strip().replace(".", "")
-            debug_print("[DEBUG] classify_with_gpt after")
-            debug_print(f"[DEBUG] GPT classification result: {classification}")
+        while attempt < max_retries:
+            try:
+                debug_print("[DEBUG] classify_with_gpt START")
+                debug_print(f"[DEBUG] text='{text[:50]}...' options={options} level={level}")
 
-            if classification not in options:
-                debug_print(
-                    f"[DEBUG] classification '{classification}' not in existing options => treating as new"
+                prompt = (
+                    f"Based on the following text, decide which {level} it belongs to:\n\n"
+                    f"Text: {text}\n\n"
+                    f"Options: {', '.join(options)}\n\n"
+                    f"Only return the name of the {level}. If there is no correct option, please suggest one."
                 )
-                debug_print("[DEBUG] classify_with_gpt END (NEW LABEL)")
+                debug_print(prompt)
+
+                response = (openai.completions.create(
+                    model="gpt-4",
+                    prompt=prompt,
+                    max_tokens=20,
+                    temperature=0.0
+                ))
+
+                debug_print("[DEBUG] classify_with_gpt before ")
+                classification = response.choices[0].text.strip().replace(".", "")
+                debug_print("[DEBUG] classify_with_gpt after")
+                debug_print(f"[DEBUG] GPT classification result: {classification}")
+
+                if classification not in options:
+                    debug_print(
+                        f"[DEBUG] classification '{classification}' not in existing options => treating as new"
+                    )
+                    debug_print("[DEBUG] classify_with_gpt END (NEW LABEL)")
+                    return classification
+
+                debug_print("[DEBUG] classify_with_gpt END (EXISTING LABEL)")
                 return classification
 
-            debug_print("[DEBUG] classify_with_gpt END (EXISTING LABEL)")
-            return classification
+            except openai.error.RateLimitError:
+                attempt += 1
+                wait_time = retry_delay * (2 ** (attempt - 1))  # Exponential backoff
+                debug_print(f"[DEBUG] Rate limit hit. Retrying in {wait_time} seconds... (Attempt {attempt}/{max_retries})")
+                time.sleep(wait_time)
+            except Exception as e:
+                debug_print(f"[DEBUG] An error occurred: {e}")
+                break
 
-        except Exception as e:
-            # Catch other types of exceptions
-            debug_print(f" [DEBUG] An error occurred: {e}")
+        # If all retries fail, return an appropriate error message or raise an exception
+        debug_print("[DEBUG] classify_with_gpt END (FAILED AFTER RETRIES)")
+        raise Exception("Rate limit exceeded. Maximum retries reached.")
 
 
     def get_hierarchy_node(self, name: str, level: str) -> Optional[ScoredPoint]:
