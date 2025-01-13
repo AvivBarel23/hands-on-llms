@@ -78,11 +78,11 @@ def build_qdrant_client(url: Optional[str] = None, api_key: Optional[str] = None
 
 
 class HierarchicalDataManager:
-    def __init__(self, qdrant_client: QdrantClient):
+    def __init__(self, qdrant_client: QdrantClient,collection_name: str):
         debug_print("[DEBUG] HierarchicalDataManager.__init__ START")
         self.client = qdrant_client
         openai.api_key = os.environ["OPENAI_API_KEY"]
-        self.hierarchy_collection = "hierarchy_tree"
+        self.hierarchy_collection = collection_name
 
         # Ensure the hierarchy collection exists
         try:
@@ -151,152 +151,60 @@ class HierarchicalDataManager:
         raise Exception("Rate limit exceeded. Maximum retries reached.")
 
 
-    def get_hierarchy_node(self, name: str, level: str) -> Optional[ScoredPoint]:
-        debug_print("[DEBUG] get_hierarchy_node START")
-        debug_print(f"[DEBUG] name='{name}', level='{level}'")
-
-        results = self.client.search(
-            collection_name=self.hierarchy_collection,
-            query_vector=[1],  # Dummy query vector
-            filter={
-                "must": [
-                    {"key": "name", "match": {"value": name}},
-                    {"key": "type", "match": {"value": level}},
-                ]
-            },
-            limit=1,
-        )
-        if results:
-            debug_print("[DEBUG] Found matching node(s). Returning the first one.")
-        else:
-            debug_print("[DEBUG] No matching node found.")
-
-        debug_print("[DEBUG] get_hierarchy_node END")
-        return results[0] if results else None
-
-
-    def save_hierarchy_node(self,
-                            name: str,
-                            level: str,
-                            parent: Optional[str] = None,
-                            children: Optional[List[str]] = None):
-        debug_print("[DEBUG] save_hierarchy_node START")
-        debug_print(
-            f"[DEBUG] name='{name}', level='{level}', parent='{parent}', children={children}"
-        )
-
-        node = self.get_hierarchy_node(name, level)
-        if node:
-            debug_print("[DEBUG] Node exists; updating existing node.")
-            payload = node.payload
-            payload["children"] = list(set(payload.get("children", []) + (children or [])))
-            self.client.upsert(
-                collection_name=self.hierarchy_collection,
-                points=[
-                    PointStruct(
-                        id=node.id,  # use the actual scored point ID
-                        vector=[0],
-                        payload=payload,
-                    )
-                ],
-            )
-        else:
-            debug_print("[DEBUG] Node does not exist; creating new node.")
-            self.client.upsert(
-                collection_name=self.hierarchy_collection,
-                points=[
-                    PointStruct(
-                        id=None,
-                        vector=[0],  # Dummy vector
-                        payload={
-                            "type": level,
-                            "name": name,
-                            "parent": parent,
-                            "children": children or [],
-                        },
-                    )
-                ],
-            )
-
-        debug_print("[DEBUG] save_hierarchy_node END")
-
-
     def save_data(self, document):
         debug_print("[DEBUG] save_data START")
         document_text = ' '.join(document.text)
         debug_print("[DEBUG] Full document text: " + document_text[:100] + "...")
+        nodes=[node for node in self.client.search(
+                collection_name=self.hierarchy_collection,
+                query_vector=[1.0]
+        )]
 
         # Step 1: Sector Classification
-        sectors = [
-            node["name"] for node in self.client.search(
-                collection_name=self.hierarchy_collection,
-                query_vector=[1.0],
-                filter={"must": [{"key": "type", "match": {"value": "sector"}}]}
-            )
-        ]
+        sectors = list(set(
+            node["sector"] for node in nodes
+        ))
+
         debug_print(f"[DEBUG] Found existing sectors: {sectors}")
         sector = self.classify_with_gpt(document_text, sectors, "sector")
         debug_print(f"[DEBUG] sector => '{sector}'")
-        # self.save_hierarchy_node(name=sector, level="sector")
 
         # Step 2: Company/Subject Classification
         subjects = [
-            node["name"] for node in self.client.search(
-                collection_name=self.hierarchy_collection,
-                query_vector=[1.0],
-                filter={
-                    "must": [
-                        {"key": "type", "match": {"value": "subject"}},
-                        {"key": "parent", "match": {"value": sector}},
-                    ]
-                }
-            )
+            node["subject"] for node in nodes if node["sector"]==sector
         ]
+
         debug_print(f"[DEBUG] Found existing subjects under sector: {subjects}")
         subject = self.classify_with_gpt(document_text, subjects, "subject")
         debug_print(f"[DEBUG] subject => '{subject}'")
-        # self.save_hierarchy_node(name=subject, level="subject", parent=sector)
 
         # Step 3: Event Type Classification
         event_types = [
-            node["name"] for node in self.client.search(
-                collection_name=self.hierarchy_collection,
-                query_vector=[1.0],
-                filter={
-                    "must": [
-                        {"key": "type", "match": {"value": "event_type"}},
-                        {"key": "parent", "match": {"value": subject}},
-                    ]
-                }
-            )
+            node["event_type"] for node in nodes if node["sector"]==sector and node["subject"]==subject
         ]
+
         debug_print(f"[DEBUG] Found existing event_types under subject: {event_types}")
         event_type = self.classify_with_gpt(document_text, event_types, "event type")
         debug_print(f"[DEBUG] event_type => '{event_type}'")
-        # self.save_hierarchy_node(name=event_type, level="event_type", parent=subject)
 
-        # Step 4: Save the document in its specific Qdrant collection
-        collection_name = f"{sector}_{subject}_{event_type}".lower().replace(" ", "_")
-        debug_print(f"[DEBUG] Final collection_name => '{collection_name}'")
+        # Step 4: Prepare the document payload for storage
+        document_payload = {
+            "sector": sector,
+            "subject": subject,
+            "event_type": event_type,
+            "document": document,  # Storing the document as-is, assuming this object is serializable
+        }
 
-        if not self.client.get_collection(collection_name):
-            debug_print(f"[DEBUG] Collection '{collection_name}' does NOT exist; creating.")
-            vector_size = len(document.embeddings[0]) if document.embeddings else 768
-            self.client.create_collection(
-                collection_name,
-                vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
-            )
-            debug_print("[DEBUG] Created new collection with vector_size=" + str(vector_size))
-            # TODO: add to the final tree if needed
-
+        # No need to create new collections, just save the document into the existing collection
         debug_print("[DEBUG] Upserting the document's embeddings...")
         ids, payloads = document.to_payloads()
         points = [
             PointStruct(id=idx, vector=vector, payload=_payload)
-            for idx, vector, _payload in zip(ids, document.embeddings, payloads)
+            for idx, vector, _payload in zip(ids, document.embeddings, [document_payload] * len(ids))
         ]
-        self.client.upsert(collection_name=collection_name, points=points)
-        debug_print(f"[DEBUG] Document saved successfully in {collection_name}")
+
+        self.client.upsert(collection_name=self.hierarchy_collection, points=points)
+        debug_print(f"[DEBUG] Document saved successfully in {self.hierarchy_collection}")
 
         debug_print("[DEBUG] save_data END")
 
@@ -318,7 +226,7 @@ class QdrantVectorSink(StatelessSink):
     ):
         debug_print("[DEBUG] QdrantVectorSink.__init__ START")
         self._collection_name = collection_name
-        self._openai_client = HierarchicalDataManager(client)
+        self._openai_client = HierarchicalDataManager(client,self.collection_name)
         debug_print("[DEBUG] QdrantVectorSink.__init__ END")
 
     def write(self, document: Document):
@@ -329,11 +237,12 @@ class QdrantVectorSink(StatelessSink):
 
 
 class QdrantVectorOutput(DynamicOutput):
+
     def __init__(
-        self,
-        vector_size: int,
-        collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
-        client: Optional[QdrantClient] = None,
+            self,
+            vector_size: int,
+            collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
+            client: Optional[QdrantClient] = None,
     ):
         debug_print("[DEBUG] QdrantVectorOutput.__init__ START")
         self._collection_name = collection_name
@@ -349,8 +258,10 @@ class QdrantVectorOutput(DynamicOutput):
             self.client.get_collection(collection_name=self._collection_name)
             debug_print("[DEBUG] Collection exists. Will not recreate.")
         except (UnexpectedResponse, ValueError):
-            debug_print("[DEBUG] Collection does not exist. Recreating from scratch.")
-            self.client.recreate_collection(
+            debug_print("[DEBUG] Collection does not exist. Creating new collection.")
+
+            # Create collection instead of recreating it
+            self.client.create_collection(
                 collection_name=self._collection_name,
                 vectors_config=VectorParams(
                     size=self._vector_size, distance=Distance.COSINE

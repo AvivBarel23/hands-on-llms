@@ -139,7 +139,7 @@ class ContextExtractorChain(Chain):
         return [opt.strip() for opt in classified_options][:top_k]
 
 
-    def get_current_level_options(self, level: str, parent: Optional[str] = None) -> List[str]:
+    def get_current_level_options(self, level: str, sector: Optional[str] = None,subject: Optional[str] = None) -> List[str]:
         """
         Fetches available options at the current hierarchy level.
 
@@ -150,17 +150,18 @@ class ContextExtractorChain(Chain):
         Returns:
             List[str]: The names of the available options at the current level.
         """
-        query_filter = {"must": [{"key": "type", "match": {"value": level}}]}
-        if parent:
-            query_filter["must"].append({"key": "parent", "match": {"value": parent}})
+        query_filter = {}
+        if sector:
+            query_filter["must"].append({"key": "sector", "match": {"value": sector}})
+        if subject:
+            query_filter["must"].append({"key": "subject", "match": {"value": subject}})
 
         options = [
-            node.payload["name"]
+            node.payload[level]
             for node in self.vector_store.search(
-                collection_name=self.hierarchy_collection,
-                query_vector=[0.0],  # Dummy vector as we are using filters
-                query_filter=query_filter,
-                limit=100,
+                collection_name=self.vector_collection,
+                query_vector=[0.0],
+                query_filter=query_filter
             )
         ]
         return options
@@ -179,31 +180,36 @@ class ContextExtractorChain(Chain):
             List[dict]: List of relevant data points.
         """
         results = []
-
         # Step 1: Fetch all sectors and classify the query into top-k sectors
         sectors = self.get_current_level_options("sector")
         top_sectors = self.classify_hierarchy_level(query, sectors, "sector", top_k)
 
         for sector in top_sectors:
             # Step 2: Fetch all subjects under the sector and classify into top-k subjects
-            subjects = self.get_current_level_options("subject", parent=sector)
+            subjects = self.get_current_level_options("subject", sector=sector)
             top_subjects = self.classify_hierarchy_level(query, subjects, "subject", top_k)
 
             for subject in top_subjects:
                 # Step 3: Fetch all event types under the subject and classify into top-k event types
-                event_types = self.get_current_level_options("event_type", parent=subject)
+                event_types = self.get_current_level_options("event_type", sector=sector,subject=subject)
                 top_event_types = self.classify_hierarchy_level(query, event_types, "event_type", top_k)
 
                 for event_type in top_event_types:
                     # Step 4: Fetch data from the identified hierarchy path
-                    collection_name = f"{sector}_{subject}_{event_type}".lower().replace(" ", "_")
+                    query_filter = {"must": [
+                        {"key": "sector", "match": {"value": sector}},
+                        {"key": "subject", "match": {"value": subject}},
+                        {"key": "event_type", "match": {"value": event_type}}
+                    ]}
                     data = self.vector_store.search(
-                        collection_name=collection_name,
+                        collection_name=self.vector_collection,
                         query_vector=query_vector,
-                        limit=self.top_k,
+                        query_filter=query_filter
                     )
+
                     results.extend(data)
-            # Step 5: Rank results based on cosine similarity with the query vector
+
+    # Step 5: Rank results based on cosine similarity with the query vector
     # Assuming each result in `data` has an embedding vector (e.g., in result['vector'])
         results_with_similarity = []
         for doc in results:
