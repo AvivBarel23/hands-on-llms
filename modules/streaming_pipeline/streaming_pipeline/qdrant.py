@@ -139,14 +139,12 @@ class HierarchicalDataManager:
                 debug_print("[DEBUG] classify_with_gpt END (EXISTING LABEL)")
                 return classification
 
-            except openai.error.RateLimitError:
+            except Exception as e:
                 attempt += 1
                 wait_time = retry_delay * (2 ** (attempt - 1))  # Exponential backoff
                 debug_print(f"[DEBUG] Rate limit hit. Retrying in {wait_time} seconds... (Attempt {attempt}/{max_retries})")
                 time.sleep(wait_time)
-            except Exception as e:
-                debug_print(f"[DEBUG] An error occurred: {e}")
-                break
+
 
         # If all retries fail, return an appropriate error message or raise an exception
         debug_print("[DEBUG] classify_with_gpt END (FAILED AFTER RETRIES)")
