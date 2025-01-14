@@ -302,6 +302,7 @@ class HierarchicalDataManager:
         debug_print(f"[DEBUG] Final collection_name => '{collection_name}'")
         try:
             collection = self.client.get_collection(collection_name)
+            print(f"[DEBUG] collection => '{collection}'")
             if collection is None:
                 debug_print(f"[DEBUG] Collection '{collection_name}' does NOT exist; creating.")
                 if not document.embeddings:
