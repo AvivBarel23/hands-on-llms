@@ -79,6 +79,7 @@ def build_qdrant_client(url: Optional[str] = None, api_key: Optional[str] = None
 
 class HierarchicalDataManager:
     def __init__(self, qdrant_client: QdrantClient,collection_name):
+        self.new_node_id=0
         debug_print("[DEBUG] HierarchicalDataManager.__init__ START")
         self.client = qdrant_client
         openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -213,11 +214,12 @@ class HierarchicalDataManager:
         else:
             debug_print("[DEBUG] Node does not exist; creating new node.")
             try:
+                self.new_node_id +=1
                 self.client.upsert(
                     collection_name=self.indices_collection,
                     points=[
                         PointStruct(
-                            id=None,
+                            id=self.new_node_id,
                             vector=[0],  # Dummy vector
                             payload={
                                 "type": level,
