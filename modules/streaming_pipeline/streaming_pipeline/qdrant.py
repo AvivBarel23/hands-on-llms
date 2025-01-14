@@ -116,7 +116,7 @@ class HierarchicalDataManager:
                     f"Options: {', '.join(options)}\n\n"
                     f"Only return the name of the {level}. If there is no correct option, please suggest one."
                 )
-                debug_print(prompt)
+                #debug_print(prompt)
 
                 response = openai.chat.completions.create(
                     model="gpt-4o-mini",
