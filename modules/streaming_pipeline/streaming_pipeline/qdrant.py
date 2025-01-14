@@ -212,21 +212,25 @@ class HierarchicalDataManager:
             )
         else:
             debug_print("[DEBUG] Node does not exist; creating new node.")
-            self.client.upsert(
-                collection_name=self.indices_collection,
-                points=[
-                    PointStruct(
-                        id=None,
-                        vector=[0],  # Dummy vector
-                        payload={
-                            "type": level,
-                            "name": name,
-                            "parent": parent,
-                            "children": children or [],
-                        },
-                    )
-                ],
-            )
+            try:
+                self.client.upsert(
+                    collection_name=self.indices_collection,
+                    points=[
+                        PointStruct(
+                            id=None,
+                            vector=[0],  # Dummy vector
+                            payload={
+                                "type": level,
+                                "name": name,
+                                "parent": parent,
+                                "children": children or [],
+                            },
+                        )
+                    ],
+                )
+            except Exception as e:
+                debug_print(f"[DEBUG] exception :{e} , tried to insert node to collection {self.indices_collection}  ")
+
 
         debug_print("[DEBUG] save_hierarchy_node END")
 
