@@ -117,12 +117,22 @@ class HierarchicalDataManager:
                 )
                 debug_print(prompt)
 
-                response = (openai.completions.create(
+                response = openai.chat.completions.create(
                     model="gpt-4o-mini",
-                    prompt=prompt,
-                    max_tokens=20,
-                    temperature=0.0
-                ))
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a financial classifier for data"
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    temperature=0.8,
+                    max_tokens=10,
+                    top_p=1
+                )
 
                 debug_print("[DEBUG] classify_with_gpt before ")
                 classification = response.choices[0].text.strip().replace(".", "")

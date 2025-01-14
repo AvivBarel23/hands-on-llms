@@ -128,9 +128,9 @@ class ContextExtractorChain(Chain):
             f"Given the query '{query}', which of these {level}s is it most related to? "
             f"Options: {', '.join(options)}"
         )
-        response = (openai.completions.create(
+        response = (openai.chat.completions.create(
             model="gpt-4",
-            prompt=prompt,
+            messages=prompt,
             max_tokens=100,
             stop=None,
             n=1,
