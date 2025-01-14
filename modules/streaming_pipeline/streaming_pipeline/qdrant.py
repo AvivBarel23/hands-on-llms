@@ -135,7 +135,7 @@ class HierarchicalDataManager:
                 )
 
                 debug_print("[DEBUG] classify_with_gpt before ")
-                classification = response.choices[0].text.strip().replace(".", "")
+                classification = response.choices[0].message.content.strip().replace(".", "")
                 debug_print("[DEBUG] classify_with_gpt after")
                 debug_print(f"[DEBUG] GPT classification result: {classification}")
 
