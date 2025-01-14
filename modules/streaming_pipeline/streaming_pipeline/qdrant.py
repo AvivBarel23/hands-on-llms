@@ -206,7 +206,7 @@ class HierarchicalDataManager:
                 points=[
                     PointStruct(
                         id=node.id,  # use the actual scored point ID
-                        vector=[0],
+                        vector=[0.1],
                         payload=payload,
                     )
                 ],
@@ -220,7 +220,7 @@ class HierarchicalDataManager:
                     points=[
                         PointStruct(
                             id=self.new_node_id,
-                            vector=[0],  # Dummy vector
+                            vector=[0.1],  # Dummy vector
                             payload={
                                 "type": level,
                                 "name": name,
