@@ -324,7 +324,7 @@ class HierarchicalDataManager:
 
             debug_print("[DEBUG] save_data END")
         except Exception as e:
-
+            debug_print(f"[DEBUG] couldnt save the data in the new colleciton , exception {e}, collection name:{collection_name} END")
 
 
 class QdrantVectorSink(StatelessSink):
