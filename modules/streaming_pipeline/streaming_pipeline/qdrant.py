@@ -255,9 +255,10 @@ class HierarchicalDataManager:
         debug_print(f"[DEBUG] sector => '{sector}'")
         self.save_hierarchy_node(name=sector, level="sector")
         debug_print(f"[DEBUG] saved sector")
+
+
     # Step 2: Company/Subject Classification
-        subjects = [
-            node["name"] for node in self.client.search(
+        subjects_raw =  self.client.search(
                 collection_name=self.indices_collection,
                 query_vector=[1.0],
                 filter={
@@ -267,7 +268,8 @@ class HierarchicalDataManager:
                     ]
                 }
             )
-        ]
+        debug_print(f"[DEBUG] subjects => '{subjects_raw}'")
+        subjects =[ node["name"] for node in subjects_raw]
         debug_print(f"[DEBUG] Found existing subjects under sector: {subjects}")
         subject = self.classify_with_gpt(document_text, subjects, "subject")
         debug_print(f"[DEBUG] subject => '{subject}'")
