@@ -300,28 +300,31 @@ class HierarchicalDataManager:
         # Step 4: Save the document in its specific Qdrant collection
         collection_name = f"alpaca_financial_news_{sector}_{subject}_{event_type}".lower().replace(" ", "_")
         debug_print(f"[DEBUG] Final collection_name => '{collection_name}'")
+        try:
+            collection = self.client.get_collection(collection_name)
+            if collection is None:
+                debug_print(f"[DEBUG] Collection '{collection_name}' does NOT exist; creating.")
+                if not document.embeddings:
+                  raise ValueError("document.embeddings is missing or empty.")
+                vector_size = len(document.embeddings[0])
+                self.client.create_collection(
+                    collection_name,
+                    vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
+                )
+                debug_print("[DEBUG] Created new collection with vector_size=" + str(vector_size))
 
-        if not self.client.collection_exists(collection_name):
-            debug_print(f"[DEBUG] Collection '{collection_name}' does NOT exist; creating.")
-            if not document.embeddings:
-              raise ValueError("document.embeddings is missing or empty.")
-            vector_size = len(document.embeddings[0])
-            self.client.create_collection(
-                collection_name,
-                vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
-            )
-            debug_print("[DEBUG] Created new collection with vector_size=" + str(vector_size))
+            debug_print("[DEBUG] Upserting the document's embeddings...")
+            ids, payloads = document.to_payloads()
+            points = [
+                PointStruct(id=idx, vector=vector, payload=_payload)
+                for idx, vector, _payload in zip(ids, document.embeddings, payloads)
+            ]
+            self.client.upsert(collection_name=collection_name, points=points)
+            debug_print(f"[DEBUG] Document saved successfully in {collection_name}")
 
-        debug_print("[DEBUG] Upserting the document's embeddings...")
-        ids, payloads = document.to_payloads()
-        points = [
-            PointStruct(id=idx, vector=vector, payload=_payload)
-            for idx, vector, _payload in zip(ids, document.embeddings, payloads)
-        ]
-        self.client.upsert(collection_name=collection_name, points=points)
-        debug_print(f"[DEBUG] Document saved successfully in {collection_name}")
+            debug_print("[DEBUG] save_data END")
+        except Exception as e:
 
-        debug_print("[DEBUG] save_data END")
 
 
 class QdrantVectorSink(StatelessSink):
