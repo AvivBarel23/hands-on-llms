@@ -118,7 +118,7 @@ class HierarchicalDataManager:
                 debug_print(prompt)
 
                 response = (openai.completions.create(
-                    model="gpt-4",
+                    model="gpt-4o-mini",
                     prompt=prompt,
                     max_tokens=20,
                     temperature=0.0
