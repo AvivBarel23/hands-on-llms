@@ -206,7 +206,7 @@ class HierarchicalDataManager:
                 points=[
                     PointStruct(
                         id=node.id,  # use the actual scored point ID
-                        vector=[0.1],
+                        vector=[1.0],
                         payload=payload,
                     )
                 ],
@@ -220,7 +220,7 @@ class HierarchicalDataManager:
                     points=[
                         PointStruct(
                             id=self.new_node_id,
-                            vector=[0.1],  # Dummy vector
+                            vector=[1.0],  # Dummy vector
                             payload={
                                 "type": level,
                                 "name": name,
@@ -254,8 +254,8 @@ class HierarchicalDataManager:
         sector = self.classify_with_gpt(document_text, sectors, "sector")
         debug_print(f"[DEBUG] sector => '{sector}'")
         self.save_hierarchy_node(name=sector, level="sector")
-
-        # Step 2: Company/Subject Classification
+        debug_print(f"[DEBUG] saved sector")
+    # Step 2: Company/Subject Classification
         subjects = [
             node["name"] for node in self.client.search(
                 collection_name=self.indices_collection,
@@ -272,6 +272,7 @@ class HierarchicalDataManager:
         subject = self.classify_with_gpt(document_text, subjects, "subject")
         debug_print(f"[DEBUG] subject => '{subject}'")
         self.save_hierarchy_node(name=subject, level="subject", parent=sector)
+        debug_print(f"[DEBUG] saved subject")
 
         # Step 3: Event Type Classification
         event_types = [
@@ -290,6 +291,9 @@ class HierarchicalDataManager:
         event_type = self.classify_with_gpt(document_text, event_types, "event type")
         debug_print(f"[DEBUG] event_type => '{event_type}'")
         self.save_hierarchy_node(name=event_type, level="event_type", parent=subject)
+
+        debug_print(f"[DEBUG] saved event_type: {event_type}")
+
 
         # Step 4: Save the document in its specific Qdrant collection
         collection_name = f"alpaca_financial_news_{sector}_{subject}_{event_type}".lower().replace(" ", "_")
