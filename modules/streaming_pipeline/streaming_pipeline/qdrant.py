@@ -303,13 +303,12 @@ class HierarchicalDataManager:
         try:
             collection = self.client.get_collection(collection_name)
         except Exception as e:
-            debug_print(f"[DEBUG] couldnt save the data in the new colleciton , exception {e}, collection name:{collection_name} END")
             debug_print(f"[DEBUG] Collection '{collection_name}' does NOT exist; creating.")
             if not document.embeddings:
               raise ValueError("document.embeddings is missing or empty.")
             vector_size = len(document.embeddings[0])
             self.client.create_collection(
-                collection_name,
+                collection_name=collection_name,
                 vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
             )
             debug_print("[DEBUG] Created new collection with vector_size=" + str(vector_size))
