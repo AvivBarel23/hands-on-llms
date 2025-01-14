@@ -244,7 +244,7 @@ class HierarchicalDataManager:
 
         # Step 1: Sector Classification
         sectors = [
-            node["name"] for node in self.client.search(
+            node.payload["name"] for node in self.client.search(
                 collection_name=self.indices_collection,
                 query_vector=[1.0],
                 filter={"must": [{"key": "type", "match": {"value": "sector"}}]}
@@ -269,7 +269,7 @@ class HierarchicalDataManager:
                 }
             )
         debug_print(f"[DEBUG] subjects => '{subjects_raw}'")
-        subjects =[ node["name"] for node in subjects_raw]
+        subjects =[ node.payload["name"] for node in subjects_raw]
         debug_print(f"[DEBUG] Found existing subjects under sector: {subjects}")
         subject = self.classify_with_gpt(document_text, subjects, "subject")
         debug_print(f"[DEBUG] subject => '{subject}'")
@@ -278,7 +278,7 @@ class HierarchicalDataManager:
 
         # Step 3: Event Type Classification
         event_types = [
-            node["name"] for node in self.client.search(
+            node.payload["name"] for node in self.client.search(
                 collection_name=self.indices_collection,
                 query_vector=[1.0],
                 filter={
