@@ -80,7 +80,7 @@ def build_qdrant_client(url: Optional[str] = None, api_key: Optional[str] = None
 
 
 class HierarchicalDataManager:
-    def __init__(self, qdrant_client: QdrantClient, collection_name: str):
+    def __init__(self, qdrant_client: QdrantClient):
         self.new_node_id = 0
         self.client = qdrant_client
         self.hierarchy_file = INDICES_PATH
@@ -189,7 +189,7 @@ The type of event or activity described in the document (e.g., merger, financial
                     )
                 user_prompt += f"Text: {text}\n\n"
                 f"Options: {', '.join(options)}\n\n"
-                f"If none of the options seem appropriate for any of the categories, **suggest an appropriate one** based on the content of the document. Your suggestions should be **specific and relevant** to the content. **Do not choose neither of the options** or **none of them**. Always provide an answer, even if it means suggesting a new category that fits better."
+                f"If none of the options seem appropriate for any of the categories, **suggest an appropriate one** based on the content of the document. Your suggestions should be **specific and relevant** to the content. **Do not choose **neither of the options** or **none of them**. Always provide an answer, even if it means suggesting a new category that fits better."
 
 
                 # Request GPT classification
