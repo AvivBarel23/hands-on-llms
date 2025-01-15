@@ -242,8 +242,7 @@ class HierarchicalDataManager:
             #     collection_name=self.vector_collection,
             # )
             #
-            random_query_vector = [random.uniform(-1, 1) for _ in range(384)]
-
+            random_query_vector = [[random.uniform(-1, 1) for _ in range(384)]]
             sectors = [
                 node.payload["name"] for node in self.client.search(
                     query_vector=random_query_vector,
@@ -252,8 +251,9 @@ class HierarchicalDataManager:
                 )
             ]
         except Exception as e:
-            debug_print("[DEBUG] exception :" + str(e))
+            debug_print("[DEBUG] exception!!!!!!!!!!!!!!!!!!!!!!!!!!!!:" + str(e))
             sectors=[]
+
         debug_print(f"[DEBUG] Found existing sectors: {sectors}")
         sector = self.classify_with_gpt(document_text, sectors, "sector")
         debug_print(f"[DEBUG] sector => '{sector}'")
