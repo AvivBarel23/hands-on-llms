@@ -347,21 +347,22 @@ class QdrantVectorOutput(DynamicOutput):
         else:
             self.client = build_qdrant_client()
         try:
-            self.client.get_collection(collection_name=self._collection_name)
+            response =self.client.get_collection(collection_name=self._collection_name)
         except Exception as e:
             debug_print(f"[DEBUG] Exception when getting collection: {e}")
-            self.client.create_collection(
-                collection_name=self._collection_name,
-                vectors_config=VectorParams(
-                size=self._vector_size,
-                distance=Distance.COSINE
-                ),
-                # Manuall add this optimizers_config to address issue: https://github.com/iusztinpaul/hands-on-llms/issues/72
-                # qdrant_client.http.exceptions.ResponseHandlingException: 1 validation error for ParsingModel[InlineResponse2005] (for parse_as_type)
-                # obj -> result -> config -> optimizer_config -> max_optimization_threads
-                # none is not an allowed value (type=type_error.none.not_allowed)
-                optimizers_config=OptimizersConfigDiff(max_optimization_threads=1),
-            )
+            if 'vectors_count' not in response.get('result', {}):
+                self.client.create_collection(
+                    collection_name=self._collection_name,
+                    vectors_config=VectorParams(
+                    size=self._vector_size,
+                    distance=Distance.COSINE
+                    ),
+                    # Manuall add this optimizers_config to address issue: https://github.com/iusztinpaul/hands-on-llms/issues/72
+                    # qdrant_client.http.exceptions.ResponseHandlingException: 1 validation error for ParsingModel[InlineResponse2005] (for parse_as_type)
+                    # obj -> result -> config -> optimizer_config -> max_optimization_threads
+                    # none is not an allowed value (type=type_error.none.not_allowed)
+                    optimizers_config=OptimizersConfigDiff(max_optimization_threads=1),
+                )
 
     def build(self, worker_index, worker_count):
         """Builds a QdrantVectorSink object.
