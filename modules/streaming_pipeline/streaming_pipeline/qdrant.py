@@ -154,17 +154,24 @@ class HierarchicalDataManager:
          # Generate a dummy query vector with the correct dimension (e.g., 384)
         query_vector = [0] * 384  # Replace with actual vector generation if available
 
-        results = self.client.search(
-            collection_name=self.indices_collection,
-            query_vector=query_vector,  # Dummy query vector
-            filter={
-                "must": [
-                    {"key": "name", "match": {"value": name}},
-                    {"key": "type", "match": {"value": level}},
-                ]
-            },
-            limit=1,
-        )
+        try:
+            results = self.client.search(
+                collection_name=self.indices_collection,
+                query_vector=[1.0] * 384,
+                filter={
+                    "must": [
+                        {"key": "name", "match": {"value": name}},
+                        {"key": "type", "match": {"value": level}},
+                    ]
+                },
+                limit=1,
+            )
+            if not results:
+                debug_print("[DEBUG] No matching node found.")
+                return None
+        except Exception as e:
+            debug_print(f"[DEBUG] Exception during search: {e}")
+            return None
         if results:
             debug_print("[DEBUG] Found matching node(s). Returning the first one.")
         else:
@@ -298,10 +305,14 @@ class HierarchicalDataManager:
             if not document.embeddings:
               raise ValueError("document.embeddings is missing or empty.")
             vector_size = len(document.embeddings[0])
-            self.client.create_collection(
-                collection_name=collection_name,
-                vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
-            )
+            try:
+                self.client.create_collection(
+                    collection_name=collection_name,
+                    vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
+                )
+            except Exception as e:
+                debug_print(f"[DEBUG] Failed to create collection '{collection_name}': {e}")
+                raise
             debug_print("[DEBUG] Created new collection with vector_size=" + str(vector_size))
 
 
