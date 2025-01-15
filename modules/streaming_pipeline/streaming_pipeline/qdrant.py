@@ -227,11 +227,23 @@ class HierarchicalDataManager:
         document_text = ' '.join(document.text)
         debug_print("[DEBUG] Full document text: " + document_text[:100] + "...")
         try:
-            # Step 1: Sector Classification
+            # # Step 1: Sector Classification
+            # cleaned_question = self.clean(question_str)
+            # # pass them through the model and average the embeddings.
+            # cleaned_question = cleaned_question[: self.embedding_model.max_input_length]
+            # embeddings = self.embedding_model(cleaned_question)
+            #
+            # # (or other time frame).
+            # matches = self.vector_store.search(
+            #     query_vector=embeddings,
+            #     k=self.top_k,
+            #     collection_name=self.vector_collection,
+            # )
+            #
+
             sectors = [
                 node.payload["name"] for node in self.client.search(
                     collection_name=self.indices_collection,
-                    query_vector=[1.0] * 384,
                     filter={"must": [{"key": "type", "match": {"value": "sector"}}]}
                 )
             ]
