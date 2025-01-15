@@ -383,7 +383,8 @@ class QdrantVectorOutput(DynamicOutput):
             self.client = build_qdrant_client()
         try:
             self.client.get_collection(collection_name=self._collection_name)
-        except (UnexpectedResponse, ValueError):
+        except (UnexpectedResponse, ValueError) as e:
+            debug_print(f"[DEBUG] Exception during get_collection: {e}")
             self.client.recreate_collection(
                 collection_name=self._collection_name,
                 vectors_config=VectorParams(
