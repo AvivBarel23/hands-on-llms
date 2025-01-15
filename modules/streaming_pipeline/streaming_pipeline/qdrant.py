@@ -382,7 +382,19 @@ class QdrantVectorOutput(DynamicOutput):
         else:
             self.client = build_qdrant_client()
         try:
-            self.client.get_collection(collection_name=self._collection_name)
+            collections = self.client.get_collections()
+            collection_info = next((c for c in collections if c.name == self._collection_name), None)
+            if not collection_info:
+                debug_print(f"[DEBUG] Collection '{self._collection_name}' not found. Creating a new collection.")
+                self.client.recreate_collection(
+                    collection_name=self._collection_name,
+                    vectors_config=VectorParams(
+                        size=self._vector_size, distance=Distance.COSINE
+                    ),
+                    optimizers_config=OptimizersConfigDiff(max_optimization_threads=1),
+                )
+            else:
+                debug_print(f"[DEBUG] Collection '{self._collection_name}' found.")
         except (UnexpectedResponse, ValueError) as e:
             debug_print(f"[DEBUG] Exception during get_collection: {e}")
             self.client.recreate_collection(
