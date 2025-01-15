@@ -3,7 +3,6 @@ import inspect
 import datetime
 import random
 
-import numpy as np
 import openai
 import time
 from typing import List, Optional
