@@ -191,11 +191,17 @@ class HierarchicalDataManager:
                     )
 
                 # Request GPT classification
-                response = openai.ChatCompletion.create(
+                response = openai.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
-                        {"role": "system", "content": "You are a financial classifier for data"},
-                        {"role": "user", "content": prompt}
+                        {
+                            "role": "system",
+                            "content": "You are a financial classifier for data"
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
                     ],
                     temperature=0.8,
                     max_tokens=10,
