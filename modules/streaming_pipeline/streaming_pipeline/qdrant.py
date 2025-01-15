@@ -158,7 +158,7 @@ class HierarchicalDataManager:
         self.save_hierarchy_to_file()
 
     def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None) -> str:
-                prompt = f"""
+                system_prompt = f"""
 You are tasked with classifying a document into the following three categories:
 
 ### 1. **Sector**:
@@ -173,21 +173,21 @@ The specific company or subject mentioned in the document (e.g., Google, Tesla, 
 The type of event or activity described in the document (e.g., merger, financial report, product launch, acquisition, scientific discovery).
 - **Explanation**: The **Event Type** categorizes what the document describes in terms of events or activities. For example, if the document talks about a company merger, it should be classified under **Merger**. If it's about a product release by **Apple**, it should be classified as a **Product Launch**. If no event type matches the options, suggest one based on the document's context.
                 """
-
+                user_prompt=""
                 # Building the prompt based on the level
                 if level == "subject":
-                    prompt += (
+                    user_prompt += (
                         f"you need to decide which subject the following text belongs under the sector '{sector}':\n\n"
                     )
                 elif level == "event type":
-                    prompt += (
+                    user_prompt += (
                         f"Based on the following text, decide which event type it belongs to under the sector '{sector}' and subject '{subject}':\n\n"
                     )
                 else:
-                    prompt += (
+                    user_prompt += (
                         f"Based on the following text, decide which {level} it belongs to:\n\n"
                     )
-                prompt += f"Text: {text}\n\n"
+                user_prompt += f"Text: {text}\n\n"
                 f"Options: {', '.join(options)}\n\n"
                 f"If none of the options seem appropriate for any of the categories, **suggest an appropriate one** based on the content of the document. Your suggestions should be **specific and relevant** to the content. **Do not choose neither of the options** or **none of them**. Always provide an answer, even if it means suggesting a new category that fits better."
 
@@ -198,11 +198,11 @@ The type of event or activity described in the document (e.g., merger, financial
                     messages=[
                         {
                             "role": "system",
-                            "content": "You are a financial classifier for data"
+                            "content": f"You are a financial classifier for data , {system_prompt}"
                         },
                         {
                             "role": "user",
-                            "content": prompt
+                            "content": user_prompt
                         }
                     ],
                     temperature=0.8,
