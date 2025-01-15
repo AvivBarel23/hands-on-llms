@@ -208,6 +208,8 @@ class HierarchicalDataManager:
                     top_p=1
                 )
 
+                debug_print(f"[DEBUG] prompt={prompt} response={response}")
+
                 classification = response.choices[0].message.content.strip().replace(".", "")
                 debug_print(f"[DEBUG] GPT classification result: {classification}")
 
