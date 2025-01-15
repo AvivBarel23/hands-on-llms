@@ -84,20 +84,20 @@ class HierarchicalDataManager:
         self.client = qdrant_client
         openai.api_key = os.environ["OPENAI_API_KEY"]
         self.indices_collection:str = collection_name
-
-        # Ensure the hierarchy collection exists
-        try:
-            debug_print(f"[DEBUG] Checking collection: {self.indices_collection}")
-            self.client.get_collection(collection_name=self.indices_collection)
-            debug_print("[DEBUG] Hierarchy collection exists.")
-        except Exception:
-            debug_print("[DEBUG] Hierarchy collection does NOT exist; creating it.")
-            self.client.create_collection(
-                collection_name=self.indices_collection,
-                vectors_config=VectorParams(size=1, distance=Distance.COSINE),
-            )
-
-        debug_print("[DEBUG] HierarchicalDataManager.__init__ END")
+        #
+        # # Ensure the hierarchy collection exists
+        # try:
+        #     debug_print(f"[DEBUG] Checking collection: {self.indices_collection}")
+        #     self.client.get_collection(collection_name=self.indices_collection)
+        #     debug_print("[DEBUG] Hierarchy collection exists.")
+        # except Exception:
+        #     debug_print("[DEBUG] Hierarchy collection does NOT exist; creating it.")
+        #     self.client.create_collection(
+        #         collection_name=self.indices_collection,
+        #         vectors_config=VectorParams(size=1, distance=Distance.COSINE),
+        #     )
+        #
+        # debug_print("[DEBUG] HierarchicalDataManager.__init__ END")
 
 
     def classify_with_gpt(self, text: str, options: List[str], level: str) -> str:
