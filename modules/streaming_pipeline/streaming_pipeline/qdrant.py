@@ -210,7 +210,7 @@ The type of event or activity described in the document (e.g., merger, financial
                     top_p=1
                 )
 
-                debug_print(f"[DEBUG] prompt={prompt} response={response}")
+                debug_print(f"[DEBUG] prompt={user_prompt} response={response}")
 
                 classification = response.choices[0].message.content.strip().replace(".", "")
                 debug_print(f"[DEBUG] GPT classification result: {classification}")
