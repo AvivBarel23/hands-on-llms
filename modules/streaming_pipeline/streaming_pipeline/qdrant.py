@@ -84,21 +84,6 @@ class HierarchicalDataManager:
         self.client = qdrant_client
         openai.api_key = os.environ["OPENAI_API_KEY"]
         self.indices_collection:str = collection_name
-        #
-        # # Ensure the hierarchy collection exists
-        # try:
-        #     debug_print(f"[DEBUG] Checking collection: {self.indices_collection}")
-        #     self.client.get_collection(collection_name=self.indices_collection)
-        #     debug_print("[DEBUG] Hierarchy collection exists.")
-        # except Exception:
-        #     debug_print("[DEBUG] Hierarchy collection does NOT exist; creating it.")
-        #     self.client.create_collection(
-        #         collection_name=self.indices_collection,
-        #         vectors_config=VectorParams(size=1, distance=Distance.COSINE),
-        #     )
-        #
-        # debug_print("[DEBUG] HierarchicalDataManager.__init__ END")
-
 
     def classify_with_gpt(self, text: str, options: List[str], level: str) -> str:
         max_retries = 5  # Maximum number of retry attempts
@@ -241,15 +226,18 @@ class HierarchicalDataManager:
         debug_print("[DEBUG] save_data START")
         document_text = ' '.join(document.text)
         debug_print("[DEBUG] Full document text: " + document_text[:100] + "...")
-
-        # Step 1: Sector Classification
-        sectors = [
-            node.payload["name"] for node in self.client.search(
-                collection_name=self.indices_collection,
-                query_vector=[1.0],
-                filter={"must": [{"key": "type", "match": {"value": "sector"}}]}
-            )
-        ]
+        try:
+            # Step 1: Sector Classification
+            sectors = [
+                node.payload["name"] for node in self.client.search(
+                    collection_name=self.indices_collection,
+                    query_vector=[1.0],
+                    filter={"must": [{"key": "type", "match": {"value": "sector"}}]}
+                )
+            ]
+        except Exception as e:
+            debug_print("[DEBUG] exception :" + str(e))
+            sectors=[]
         debug_print(f"[DEBUG] Found existing sectors: {sectors}")
         sector = self.classify_with_gpt(document_text, sectors, "sector")
         debug_print(f"[DEBUG] sector => '{sector}'")
