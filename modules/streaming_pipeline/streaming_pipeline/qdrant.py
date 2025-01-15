@@ -231,7 +231,7 @@ class HierarchicalDataManager:
             sectors = [
                 node.payload["name"] for node in self.client.search(
                     collection_name=self.indices_collection,
-                    query_vector=[1.0],
+                    query_vector=[1.0] * 384,
                     filter={"must": [{"key": "type", "match": {"value": "sector"}}]}
                 )
             ]
@@ -248,7 +248,7 @@ class HierarchicalDataManager:
     # Step 2: Company/Subject Classification
         subjects_raw =  self.client.search(
                 collection_name=self.indices_collection,
-                query_vector=[1.0],
+                query_vector=[1.0] * 384,
                 filter={
                     "must": [
                         {"key": "type", "match": {"value": "subject"}},
@@ -268,7 +268,7 @@ class HierarchicalDataManager:
         event_types = [
             node.payload["name"] for node in self.client.search(
                 collection_name=self.indices_collection,
-                query_vector=[1.0],
+                query_vector=[1.0] * 384,
                 filter={
                     "must": [
                         {"key": "type", "match": {"value": "event_type"}},
