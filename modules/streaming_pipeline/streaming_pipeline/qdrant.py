@@ -268,6 +268,8 @@ class HierarchicalDataManager:
         except Exception as e:
             debug_print(f"[DEBUG] Collection '{collection_name}' does NOT exist; creating.")
             try:
+                if not document.embeddings:
+                    raise ValueError("document.embeddings is missing or empty.")
                 vector_size = len(document.embeddings[0])
                 self.client.create_collection(
                     collection_name=collection_name,
