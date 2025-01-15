@@ -349,7 +349,7 @@ class QdrantVectorOutput(DynamicOutput):
         try:
             self.client.get_collection(collection_name=self._collection_name)
         except (UnexpectedResponse, ValueError):
-            self.client.recreate_collection(
+            self.client.create_collection(
                 collection_name=self._collection_name,
                 vectors_config=VectorParams(
                     size=self._vector_size, distance=Distance.COSINE
