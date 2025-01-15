@@ -319,11 +319,6 @@ class QdrantVectorSink(StatelessSink):
         debug_print("[DEBUG] QdrantVectorSink.write END")
 
 
-from typing import Optional
-from qdrant_client import QdrantClient
-from qdrant_client.http import VectorParams, OptimizersConfigDiff, Distance
-from qdrant_client.exceptions import UnexpectedResponse
-
 class QdrantVectorOutput(DynamicOutput):
     """A class representing a Qdrant vector output.
 
@@ -338,10 +333,10 @@ class QdrantVectorOutput(DynamicOutput):
     """
 
     def __init__(
-            self,
-            vector_size: int,
-            collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
-            client: Optional[QdrantClient] = None,
+        self,
+        vector_size: int,
+        collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
+        client: Optional[QdrantClient] = None,
     ):
         debug_print("[DEBUG] QdrantVectorOutput.__init__ START")
         self._collection_name = collection_name
@@ -351,30 +346,22 @@ class QdrantVectorOutput(DynamicOutput):
             self.client = client
         else:
             self.client = build_qdrant_client()
-
-        # Attempt to get collection and check for missing vectors_count
         try:
-            response = self.client.get_collection(collection_name=self._collection_name)
-            # Check if vectors_count exists in the response and handle if missing
-            if 'vectors_count' not in response.get('result', {}):
-                debug_print("[WARNING] 'vectors_count' field is missing from the collection response.")
-                # Handle the missing field (e.g., set a default value or skip)
-                self.vectors_count = 0  # Default to 0 or set another appropriate value
-            else:
-                self.vectors_count = response['result']['vectors_count']
-        except (UnexpectedResponse, ValueError) as e:
-            debug_print(f"[ERROR] Error retrieving collection: {e}")
-            # Create the collection if it doesn't exist
+            self.client.get_collection(collection_name=self._collection_name)
+        except Exception as e:
+            debug_print(f"[DEBUG] Exception when getting collection: {e}")
             self.client.create_collection(
                 collection_name=self._collection_name,
                 vectors_config=VectorParams(
-                    size=self._vector_size,
-                    distance=Distance.COSINE
+                size=self._vector_size,
+                distance=Distance.COSINE
                 ),
+                # Manuall add this optimizers_config to address issue: https://github.com/iusztinpaul/hands-on-llms/issues/72
+                # qdrant_client.http.exceptions.ResponseHandlingException: 1 validation error for ParsingModel[InlineResponse2005] (for parse_as_type)
+                # obj -> result -> config -> optimizer_config -> max_optimization_threads
+                # none is not an allowed value (type=type_error.none.not_allowed)
                 optimizers_config=OptimizersConfigDiff(max_optimization_threads=1),
             )
-
-        debug_print(f"[DEBUG] QdrantVectorOutput.__init__ END")
 
     def build(self, worker_index, worker_count):
         """Builds a QdrantVectorSink object.
