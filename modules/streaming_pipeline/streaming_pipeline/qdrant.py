@@ -158,37 +158,39 @@ class HierarchicalDataManager:
         self.save_hierarchy_to_file()
 
     def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None) -> str:
-        max_retries = 5  # Maximum number of retry attempts
-        retry_delay = 2  # Initial delay between retries (in seconds)
-        attempt = 0
+                prompt = f"""
+You are tasked with classifying a document into the following three categories:
 
-        while attempt < max_retries:
-            try:
-                debug_print("[DEBUG] classify_with_gpt START")
-                debug_print(f"[DEBUG] text='{text[:50]}...' options={options} level={level} sector={sector} subject={subject}")
+### 1. **Sector**:
+The broad industry or field to which the document belongs (e.g., Finance, Healthcare, Technology).
+- **Explanation**: The **Sector** is the broadest classification. For instance, if the document is about healthcare services or innovations in the medical field, it would fall under **Healthcare**. If it's about technology products or software development, it would fall under **Technology**. Please pick the sector that fits best based on the text.
+
+### 2. **Company/Subject**:
+The specific company or subject mentioned in the document (e.g., Google, Tesla, artificial intelligence, climate change).
+- **Explanation**: The **Company/Subject** level focuses on the specific company or subject mentioned. For example, if the document mentions a new technology by **Apple** or discusses **Artificial Intelligence**, the response should reflect that. If the subject doesn’t match the options, suggest a fitting one. You can classify topics like "climate change" under the **Subject** category even if it isn't a company.
+
+### 3. **Event Type**:
+The type of event or activity described in the document (e.g., merger, financial report, product launch, acquisition, scientific discovery).
+- **Explanation**: The **Event Type** categorizes what the document describes in terms of events or activities. For example, if the document talks about a company merger, it should be classified under **Merger**. If it's about a product release by **Apple**, it should be classified as a **Product Launch**. If no event type matches the options, suggest one based on the document's context.
+                """
 
                 # Building the prompt based on the level
                 if level == "subject":
-                    prompt = (
-                        f"Based on the following text, decide which subject it belongs to under the sector '{sector}':\n\n"
-                        f"Text: {text}\n\n"
-                        f"Options: {', '.join(options)}\n\n"
-                        f"Only return the name of the subject. If there is no valid option, you have to suggest one, don't return None"
+                    prompt += (
+                        f"you need to decide which subject the following text belongs under the sector '{sector}':\n\n"
                     )
                 elif level == "event type":
-                    prompt = (
+                    prompt += (
                         f"Based on the following text, decide which event type it belongs to under the sector '{sector}' and subject '{subject}':\n\n"
-                        f"Text: {text}\n\n"
-                        f"Options: {', '.join(options)}\n\n"
-                        f"Only return the name of the event type. If there is no valid option, you have to suggest one, don't return None"
                     )
                 else:
-                    prompt = (
+                    prompt += (
                         f"Based on the following text, decide which {level} it belongs to:\n\n"
-                        f"Text: {text}\n\n"
-                        f"Options: {', '.join(options)}\n\n"
-                        f"Only return the name of the {level}. If there is no valid option, you have to suggest one, don't return None"
                     )
+                prompt += f"Text: {text}\n\n"
+                f"Options: {', '.join(options)}\n\n"
+                f"If none of the options seem appropriate for any of the categories, **suggest an appropriate one** based on the content of the document. Your suggestions should be **specific and relevant** to the content. **Do not choose neither of the options** or **none of them**. Always provide an answer, even if it means suggesting a new category that fits better."
+
 
                 # Request GPT classification
                 response = openai.chat.completions.create(
@@ -215,13 +217,6 @@ class HierarchicalDataManager:
 
                 return classification
 
-            except Exception as e:
-                attempt += 1
-                wait_time = retry_delay * (2 ** (attempt - 1))  # Exponential backoff
-                debug_print(f"[DEBUG] Exception: {e}. Retrying in {wait_time} seconds... (Attempt {attempt}/{max_retries})")
-                time.sleep(wait_time)
-
-        raise Exception("Rate limit exceeded. Maximum retries reached.")
 
     def save_data(self, document):
         """Save document data to Qdrant and hierarchy nodes to a JSON file."""
