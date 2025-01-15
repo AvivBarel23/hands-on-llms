@@ -151,9 +151,12 @@ class HierarchicalDataManager:
         debug_print("[DEBUG] get_hierarchy_node START")
         debug_print(f"[DEBUG] name='{name}', level='{level}'")
 
+         # Generate a dummy query vector with the correct dimension (e.g., 384)
+        query_vector = [0] * 384  # Replace with actual vector generation if available
+
         results = self.client.search(
             collection_name=self.indices_collection,
-            query_vector=[1],  # Dummy query vector
+            query_vector=query_vector,  # Dummy query vector
             filter={
                 "must": [
                     {"key": "name", "match": {"value": name}},
