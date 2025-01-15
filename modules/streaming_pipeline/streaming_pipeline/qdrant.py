@@ -341,6 +341,18 @@ class QdrantVectorSink(StatelessSink):
 
 
 class QdrantVectorOutput(DynamicOutput):
+    """A class representing a Qdrant vector output.
+
+    This class is used to create a Qdrant vector output, which is a type of dynamic output that supports
+    at-least-once processing. Messages from the resume epoch will be duplicated right after resume.
+
+    Args:
+        vector_size (int): The size of the vector.
+        collection_name (str, optional): The name of the collection.
+            Defaults to constants.VECTOR_DB_OUTPUT_COLLECTION_NAME.
+        client (Optional[QdrantClient], optional): The Qdrant client. Defaults to None.
+    """
+
     def __init__(
         self,
         vector_size: int,
@@ -371,6 +383,16 @@ class QdrantVectorOutput(DynamicOutput):
             )
 
     def build(self, worker_index, worker_count):
+        """Builds a QdrantVectorSink object.
+
+        Args:
+            worker_index (int): The index of the worker.
+            worker_count (int): The total number of workers.
+
+        Returns:
+            QdrantVectorSink: A QdrantVectorSink object.
+        """
+
         debug_print(f"[DEBUG] QdrantVectorOutput.build START on worker {worker_index}/{worker_count}")
         sink = QdrantVectorSink(self.client, self._collection_name)
         debug_print("[DEBUG] QdrantVectorOutput.build END - returning sink")
