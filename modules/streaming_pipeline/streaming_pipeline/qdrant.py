@@ -106,7 +106,7 @@ class HierarchicalDataManager:
         """Retrieve all subjects under a specific sector."""
         sector_node = self.find_node(sector_name)
         if not sector_node or sector_node.get("level") != "sector":
-            raise ValueError(f"Sector '{sector_name}' not found.")
+            raise ValueError(f"Sector {sector_name} not found.")
         return [child["name"] for child in sector_node.get("children", [])]
 
     def get_event_types_under_subject(self, sector_name: str, subject_name: str) -> List[str]:
@@ -119,7 +119,7 @@ class HierarchicalDataManager:
             (child for child in sector_node.get("children", []) if child["name"] == subject_name), None
         )
         if not subject_node or subject_node.get("level") != "subject":
-            raise ValueError(f"Subject '{subject_name}' not found under sector '{sector_name}'.")
+            raise ValueError(f"Subject {subject_name} not found under sector {sector_name}.")
         return [child["name"] for child in subject_node.get("children", [])]
 
     def find_node(self, name, current_node=None):
@@ -264,7 +264,8 @@ class HierarchicalDataManager:
         debug_print(f"[DEBUG] Final collection_name => '{collection_name}'")
 
         try:
-            self.client.get_collection(collection_name)
+            v=self.client.get_collection(collection_name)
+            debug_print(f"[DEBUG] Collection v = {v} 121212121")
         except Exception as e:
             debug_print(f"[DEBUG] Collection '{collection_name}' does NOT exist; creating.")
             try:
@@ -278,20 +279,20 @@ class HierarchicalDataManager:
                 debug_print(f"[DEBUG] Created new collection with vector_size={vector_size}")
             except Exception as e:
                 debug_print(f"[DEBUG] Exception when creating new collection: {e} !!!!!!!!!!!!!")
+        finally:
+            # Upsert the document embeddings into Qdrant
+            try:
+                ids, payloads = document.to_payloads()
+                points = [
+                    PointStruct(id=idx, vector=vector, payload=_payload)
+                    for idx, vector, _payload in zip(ids, document.embeddings, payloads)
+                ]
+                self.client.upsert(collection_name=collection_name, points=points)
+                debug_print(f"[DEBUG] Document saved successfully in {collection_name}")
 
-        # Upsert the document embeddings into Qdrant
-        try:
-            ids, payloads = document.to_payloads()
-            points = [
-                PointStruct(id=idx, vector=vector, payload=_payload)
-                for idx, vector, _payload in zip(ids, document.embeddings, payloads)
-            ]
-            self.client.upsert(collection_name=collection_name, points=points)
-            debug_print(f"[DEBUG] Document saved successfully in {collection_name}")
-
-            debug_print("[DEBUG] save_data END")
-        except Exception as e:
-            debug_print(f"[DEBUG] Exception when upserting to new collection: {e}")
+                debug_print("[DEBUG] save_data END")
+            except Exception as e:
+                debug_print(f"[DEBUG] Exception when upserting to new collection: {e}")
 
 
 class QdrantVectorSink(StatelessSink):
