@@ -1,6 +1,8 @@
 import os
 import inspect
 import datetime
+import random
+
 import openai
 import time
 from typing import List, Optional
@@ -240,9 +242,11 @@ class HierarchicalDataManager:
             #     collection_name=self.vector_collection,
             # )
             #
+            random_query_vector = [random.uniform(-1, 1) for _ in range(384)]
 
             sectors = [
                 node.payload["name"] for node in self.client.search(
+                    query_vector=random_query_vector,
                     collection_name=self.indices_collection,
                     filter={"must": [{"key": "type", "match": {"value": "sector"}}]}
                 )
