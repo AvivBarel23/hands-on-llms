@@ -350,7 +350,7 @@ class QdrantVectorOutput(DynamicOutput):
             response =self.client.get_collection(collection_name=self._collection_name)
         except Exception as e:
             debug_print(f"[DEBUG] Exception when getting collection: {e}")
-            if 'vectors_count' not in e:
+            if 'vectors_count' not in str(e):
                 self.client.create_collection(
                     collection_name=self._collection_name,
                     vectors_config=VectorParams(
