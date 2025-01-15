@@ -173,21 +173,21 @@ class HierarchicalDataManager:
                         f"Based on the following text, decide which subject it belongs to under the sector '{sector}':\n\n"
                         f"Text: {text}\n\n"
                         f"Options: {', '.join(options)}\n\n"
-                        f"Only return the name of the subject. If there is no correct option, please suggest one."
+                        f"Only return the name of the subject. If there is no valid option, you have to suggest one, don't return None"
                     )
                 elif level == "event type":
                     prompt = (
                         f"Based on the following text, decide which event type it belongs to under the sector '{sector}' and subject '{subject}':\n\n"
                         f"Text: {text}\n\n"
                         f"Options: {', '.join(options)}\n\n"
-                        f"Only return the name of the event type. If there is no correct option, please suggest one."
+                        f"Only return the name of the event type. If there is no valid option, you have to suggest one, don't return None"
                     )
                 else:
                     prompt = (
                         f"Based on the following text, decide which {level} it belongs to:\n\n"
                         f"Text: {text}\n\n"
                         f"Options: {', '.join(options)}\n\n"
-                        f"Only return the name of the {level}. If there is no correct option, please suggest one."
+                        f"Only return the name of the {level}. If there is no valid option, you have to suggest one, don't return None"
                     )
 
                 # Request GPT classification
@@ -210,10 +210,6 @@ class HierarchicalDataManager:
 
                 classification = response.choices[0].message.content.strip().replace(".", "")
                 debug_print(f"[DEBUG] GPT classification result: {classification}")
-
-                if classification not in options:
-                    debug_print(f"[DEBUG] classification '{classification}' not in existing options => treating as new")
-                    return classification
 
                 return classification
 
