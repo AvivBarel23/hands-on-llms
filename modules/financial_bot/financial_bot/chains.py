@@ -1,7 +1,6 @@
 import os
 import time
 from typing import Any, Dict, List, Optional
-from scipy.spatial.distance import cosine
 
 import openai
 import qdrant_client
@@ -217,7 +216,6 @@ class ContextExtractorChain(Chain):
         return {
             "context": context,
         }
-
 
     def clean(self, question: str) -> str:
         """
