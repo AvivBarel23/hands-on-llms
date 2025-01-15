@@ -31,7 +31,7 @@ def build_flow(
     logger = logging.getLogger(__name__)
 
     to_datetime = datetime.datetime.now()
-    from_datetime = to_datetime - datetime.timedelta(days=latest_n_days)
+    from_datetime = to_datetime - datetime.timedelta(hours=latest_n_days)
     logger.info(
         f"Extracting news from {from_datetime} to {to_datetime} [n_days={latest_n_days}]"
     )
