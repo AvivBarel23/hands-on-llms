@@ -267,25 +267,29 @@ class HierarchicalDataManager:
             self.client.get_collection(collection_name)
         except Exception as e:
             debug_print(f"[DEBUG] Collection '{collection_name}' does NOT exist; creating.")
-            if not document.embeddings:
-                raise ValueError("document.embeddings is missing or empty.")
-            vector_size = len(document.embeddings[0])
-            self.client.create_collection(
-                collection_name=collection_name,
-                vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
-            )
-            debug_print(f"[DEBUG] Created new collection with vector_size={vector_size}")
+            try:
+                vector_size = len(document.embeddings[0])
+                self.client.create_collection(
+                    collection_name=collection_name,
+                    vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
+                )
+                debug_print(f"[DEBUG] Created new collection with vector_size={vector_size}")
+            except Exception as e:
+                debug_print(f"[DEBUG] Exception when creating new collection: {e} !!!!!!!!!!!!!")
 
         # Upsert the document embeddings into Qdrant
-        ids, payloads = document.to_payloads()
-        points = [
-            PointStruct(id=idx, vector=vector, payload=_payload)
-            for idx, vector, _payload in zip(ids, document.embeddings, payloads)
-        ]
-        self.client.upsert(collection_name=collection_name, points=points)
-        debug_print(f"[DEBUG] Document saved successfully in {collection_name}")
+        try:
+            ids, payloads = document.to_payloads()
+            points = [
+                PointStruct(id=idx, vector=vector, payload=_payload)
+                for idx, vector, _payload in zip(ids, document.embeddings, payloads)
+            ]
+            self.client.upsert(collection_name=collection_name, points=points)
+            debug_print(f"[DEBUG] Document saved successfully in {collection_name}")
 
-        debug_print("[DEBUG] save_data END")
+            debug_print("[DEBUG] save_data END")
+        except Exception as e:
+            debug_print(f"[DEBUG] Exception when upserting to new collection: {e}")
 
 
 class QdrantVectorSink(StatelessSink):
