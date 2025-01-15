@@ -19,7 +19,7 @@ from streaming_pipeline.models import Document
 
 # -- Global path to log in the same directory as this file
 LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "debug.log")
-INDICES_PATH = os.path.join('../../'+os.path.dirname(__file__), "hierarchy_indices_db.log")
+INDICES_PATH = os.path.join('../../'+os.path.dirname(__file__), "hierarchy_indices_db.json")
 
 def debug_print(msg: str):
     """
