@@ -37,7 +37,7 @@ run_batch:
 	RUST_BACKTRACE=full poetry run python -m bytewax.run "tools.run_batch:build_flow(latest_n_days=8, debug=True)"
 
 run_batch_dev:
-	RUST_BACKTRACE=full poetry run python -m bytewax.run "tools.run_batch:build_flow(latest_n_days=2, debug=False)"
+	RUST_BACKTRACE=full poetry run python -m bytewax.run "tools.run_batch:build_flow(latest_n_days=2)"
 
 search:
 	poetry run python -m tools.search ${PARAMS}
