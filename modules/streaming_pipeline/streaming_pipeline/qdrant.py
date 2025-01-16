@@ -311,7 +311,7 @@ class QdrantVectorSink(StatelessSink):
         collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
     ):
         debug_print("[DEBUG] QdrantVectorSink.__init__ START")
-        self.hierarchical_data_manager = HierarchicalDataManager(client,collection_name)
+        self.hierarchical_data_manager = HierarchicalDataManager(client)
         debug_print("[DEBUG] QdrantVectorSink.__init__ END")
 
     def write(self, document: Document):
