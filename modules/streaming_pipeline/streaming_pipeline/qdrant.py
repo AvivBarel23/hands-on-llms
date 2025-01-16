@@ -160,20 +160,20 @@ class HierarchicalDataManager:
 
     def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None) -> str:
                 system_prompt = f"""
-You are tasked with classifying a document into the following three categories:
+                    You are tasked with classifying a document into the following three categories:
 
-### 1. **Sector**:
-The broad industry or field to which the document belongs (e.g., Finance, Healthcare, Technology).
-- **Explanation**: The **Sector** is the broadest classification. For instance, if the document is about healthcare services or innovations in the medical field, it would fall under **Healthcare**. If it's about technology products or software development, it would fall under **Technology**. Please pick the sector that fits best based on the text.
+                    ### 1. **Sector**:
+                    The broad industry or field to which the document belongs (e.g., Finance, Healthcare, Technology).
+                    - **Explanation**: The **Sector** is the broadest classification. For instance, if the document is about healthcare services or innovations in the medical field, it would fall under **Healthcare**. If it's about technology products or software development, it would fall under **Technology**. Please pick the sector that fits best based on the text.
 
-### 2. **Company/Subject**:
-The specific company or subject mentioned in the document (e.g., Google, Tesla, artificial intelligence, climate change).
-- **Explanation**: The **Company/Subject** level focuses on the specific company or subject mentioned. For example, if the document mentions a new technology by **Apple** or discusses **Artificial Intelligence**, the response should reflect that. If the subject doesn’t match the options, suggest a fitting one. You can classify topics like "climate change" under the **Subject** category even if it isn't a company.
+                    ### 2. **Company/Subject**:
+                    The specific company or subject mentioned in the document (e.g., Google, Tesla, artificial intelligence, climate change).
+                    - **Explanation**: The **Company/Subject** level focuses on the specific company or subject mentioned. For example, if the document mentions a new technology by **Apple** or discusses **Artificial Intelligence**, the response should reflect that. If the subject doesn’t match the options, suggest a fitting one. You can classify topics like "climate change" under the **Subject** category even if it isn't a company.
 
-### 3. **Event Type**:
-The type of event or activity described in the document (e.g., merger, financial report, product launch, acquisition, scientific discovery).
-- **Explanation**: The **Event Type** categorizes what the document describes in terms of events or activities. For example, if the document talks about a company merger, it should be classified under **Merger**. If it's about a product release by **Apple**, it should be classified as a **Product Launch**. If no event type matches the options, suggest one based on the document's context.
-                """
+                    ### 3. **Event Type**:
+                    The type of event or activity described in the document (e.g., merger, financial report, product launch, acquisition, scientific discovery).
+                    - **Explanation**: The **Event Type** categorizes what the document describes in terms of events or activities. For example, if the document talks about a company merger, it should be classified under **Merger**. If it's about a product release by **Apple**, it should be classified as a **Product Launch**. If no event type matches the options, suggest one based on the document's context.
+                            """
                 user_prompt=""
                 # Building the prompt based on the level
                 if level == "subject":
@@ -189,8 +189,14 @@ The type of event or activity described in the document (e.g., merger, financial
                         f"Based on the following text, decide which {level} it belongs to:\n\n"
                     )
                 user_prompt += f"Text: {text}\n\n"
-                f"Options: {', '.join(options)}\n\n"
-                f"If none of the options seem appropriate for any of the categories, **suggest an appropriate one** based on the content of the document. Your suggestions should be **specific and relevant** to the content. **Do not choose **neither of the options** or **none of them**. Always provide an answer, even if it means suggesting a new category that fits better."
+                user_prompt += f"Options: {', '.join(options)}\n\n"
+                user_prompt += (
+                    "If none of the options seem appropriate for any of the categories, "
+                    "**suggest an appropriate one** based on the content of the document. "
+                    "Your suggestions should be **specific and relevant** to the content. "
+                    "**Do not choose **neither of the options** or **none of them**. "
+                    "Always provide an answer, even if it means suggesting a new category that fits better.")
+
 
 
                 # Request GPT classification
