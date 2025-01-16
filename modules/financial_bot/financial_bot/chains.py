@@ -180,7 +180,7 @@ class ContextExtractorChain(Chain):
                     "**suggest an appropriate one** based on the content of the query. "
                     "Your suggestions should be **specific and relevant** to the content. "
                     "**Do not reply **neither of the options** or **none of them** or anything of the sort! this is not valid answer. "
-                    "Always provide an answer, even if it means suggesting a new category that fits better.")
+                    "Always provide an answer, even if it means suggesting a new category that fits better.\nThe answer must be only the name of the {level} without any garbage!")
 
 
 
@@ -250,11 +250,16 @@ class ContextExtractorChain(Chain):
         event_type = self.classify_with_gpt(query, event_types, "event type",sector=sector,subject=subject)
 
         collection_name = f"alpaca_financial_news_{sector}_{subject}_{event_type}".lower().replace(" ", "_")
-        data = self.vector_store.search(
-            collection_name=collection_name,
-            query_vector=query_vector,
-            limit=self.top_k,
-        )
+        try:
+            data = self.vector_store.search(
+                collection_name=collection_name,
+                query_vector=query_vector,
+                limit=self.top_k,
+            )
+        except Exception as e:
+            print(f"######NOT FOUND HIERARCHY FOR COLLECTION NAME {collection_name}!!!!#######")
+            exit(1)
+        
         return data
 
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
