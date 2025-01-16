@@ -123,6 +123,7 @@ class ContextExtractorChain(Chain):
     vector_store: qdrant_client.QdrantClient
     vector_collection: str
     hierarchy_file: str = INDICES_PATH
+    hierarchy: Dict[str, Any] = PrivateAttr(default=None)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
