@@ -195,7 +195,7 @@ class HierarchicalDataManager:
                     "**suggest an appropriate one** based on the content of the query. "
                     "Your suggestions should be **specific and relevant** to the content. "
                     "**Do not reply **neither of the options** or **none of them** or anything of the sort! this is not valid answer. "
-                    "Always provide an answer, even if it means suggesting a new category that fits better.")
+                    f"Always provide an answer, even if it means suggesting a new category that fits better.\nThe answer must be only the name of the {level} without any garbage!")
 
 
 
@@ -229,7 +229,7 @@ class HierarchicalDataManager:
         """Save document data to Qdrant and hierarchy nodes to a JSON file."""
         debug_print("[DEBUG] save_data START")
         document_text = ' '.join(document.text)
-        debug_print("[DEBUG] Full document text: " + document_text[:100] + "...")
+        #debug_print("[DEBUG] Full document text: " + document_text[:100] + "...")
 
         # Step 1: Sector Classification
         sectors = self.get_all_sectors()
