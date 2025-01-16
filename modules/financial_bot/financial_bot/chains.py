@@ -1,6 +1,7 @@
 import os
 import time
 from typing import Any, Dict, List, Optional
+import json
 
 import openai
 import qdrant_client
@@ -19,6 +20,24 @@ from unstructured.cleaners.core import (
 from financial_bot.embeddings import EmbeddingModelSingleton
 from financial_bot.template import PromptTemplate
 
+INDICES_PATH = os.path.join(os.path.dirname(__file__), "../../streaming_pipeline/streaming_pipeline/hierarchy_indices_db.json")
+
+# def debug_print(msg: str):
+#     """
+#     Logs debug messages to `debug.log` in this directory,
+#     including timestamp, filename, and line number.
+#     """
+#     # Capture call frame info (who called debug_print)
+#     frame_info = inspect.stack()[1]
+#     filename = os.path.basename(frame_info.filename)
+#     lineno = frame_info.lineno
+
+#     # Optional timestamp
+#     now_str = datetime.datetime.now().isoformat()
+
+#     formatted_msg = f"[{now_str}][{filename}:{lineno}] {msg}"
+#     with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
+#         f.write(formatted_msg + "\n")
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
     """
@@ -95,12 +114,25 @@ class ContextExtractorChain(Chain):
         The vector store to search for matches.
     vector_collection : str
         The name of the collection to search in the vector store.
+    hierarchy_file: str
+        The path to the hierarchy json file created in the streaming pipeline.
     """
 
     top_k: int = 1
     embedding_model: EmbeddingModelSingleton
     vector_store: qdrant_client.QdrantClient
     vector_collection: str
+    hierarchy_file: str = INDICES_PATH
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        # Load existing hierarchy or initialize a new one
+        if os.path.exists(self.hierarchy_file):
+            with open(self.hierarchy_file, "r") as f:
+                self.hierarchy = json.load(f)
+        else:
+            raise ValueError(f"Could not find architecture json in path {INDICES_PATH}")
 
     @property
     def input_keys(self) -> List[str]:
@@ -110,59 +142,90 @@ class ContextExtractorChain(Chain):
     def output_keys(self) -> List[str]:
         return ["context"]
 
-    def classify_hierarchy_level(self, query: str, options: List[str], level: str) -> str:
-        """
-        Classifies a query into the top-k options at a given hierarchy level.
 
-        Args:
-            query (str): The user's search query.
-            options (List[str]): Available options at the current hierarchy level.
-            level (str): The current hierarchy level (sector, subject, event type).
-            top_k (int): The number of top options to return.
+    def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None) -> str:
+                system_prompt = f"""
+                    You are tasked with classifying a document into the following three categories:
 
-        Returns:
-            List[str]: The top-k most relevant options for the query.
-        """
-        prompt = (
-            f"Given the query '{query}', which of these {level}s is it most related to? "
-            f"Options: {', '.join(options)}"
-        )
-        response = (openai.chat.completions.create(
-            model="gpt-4",
-            messages=prompt,
-            max_tokens=100,
-            stop=None,
-            n=1,
-            temperature=0.7,
-        ))
-        classification = response.choices[0].text.strip().replace(".", "")
-        return classification
+                    ### 1. **Sector**:
+                    The broad industry or field to which the document belongs (e.g., Finance, Healthcare, Technology).
+                    - **Explanation**: The **Sector** is the broadest classification. For instance, if the document is about healthcare services or innovations in the medical field, it would fall under **Healthcare**. If it's about technology products or software development, it would fall under **Technology**. Please pick the sector that fits best based on the text.
+
+                    ### 2. **Company/Subject**:
+                    The specific company or subject mentioned in the document (e.g., Google, Tesla, artificial intelligence, climate change).
+                    - **Explanation**: The **Company/Subject** level focuses on the specific company or subject mentioned. For example, if the document mentions a new technology by **Apple** or discusses **Artificial Intelligence**, the response should reflect that. If the subject doesn’t match the options, suggest a fitting one. You can classify topics like "climate change" under the **Subject** category even if it isn't a company.
+
+                    ### 3. **Event Type**:
+                    The type of event or activity described in the document (e.g., merger, financial report, product launch, acquisition, scientific discovery).
+                    - **Explanation**: The **Event Type** categorizes what the document describes in terms of events or activities. For example, if the document talks about a company merger, it should be classified under **Merger**. If it's about a product release by **Apple**, it should be classified as a **Product Launch**. If no event type matches the options, suggest one based on the document's context.
+                            """
+                user_prompt=""
+                # Building the prompt based on the level
+                if level == "subject":
+                    user_prompt += (
+                        f"you need to decide which subject the following text belongs under the sector '{sector}':\n\n"
+                    )
+                elif level == "event type":
+                    user_prompt += (
+                        f"Based on the following text, decide which event type it belongs to under the sector '{sector}' and subject '{subject}':\n\n"
+                    )
+                else:
+                    user_prompt += (
+                        f"Based on the following text, decide which {level} it belongs to:\n\n"
+                    )
+                user_prompt += f"Text: {text}\n\n"
+                user_prompt += f"Options: {', '.join(options)}\n\n"
+                user_prompt += (
+                    "If none of the options seem appropriate for any of the categories, "
+                    "**suggest an appropriate one** based on the content of the document. "
+                    "Your suggestions should be **specific and relevant** to the content. "
+                    "**Do not choose **neither of the options** or **none of them**. "
+                    "Always provide an answer, even if it means suggesting a new category that fits better.")
 
 
-    def get_current_level_options(self, level: str, parent: Optional[str] = None) -> List[str]:
-        """
-        Fetches available options at the current hierarchy level.
 
-        Args:
-            level (str): The hierarchy level (sector, subject, event_type).
-            parent (Optional[str]): The parent node (if applicable).
+                # Request GPT classification
+                response = openai.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": f"You are a financial classifier for data , {system_prompt}"
+                        },
+                        {
+                            "role": "user",
+                            "content": user_prompt
+                        }
+                    ],
+                    temperature=0.8,
+                    max_tokens=10,
+                    top_p=1
+                )
 
-        Returns:
-            List[str]: The names of the available options at the current level.
-        """
-        query_filter = {"must": [{"key": "type", "match": {"value": level}}]}
-        if parent:
-            query_filter["must"].append({"key": "parent", "match": {"value": parent}})
+                #debug_print(f"[DEBUG] prompt={user_prompt} response={response}")
 
-        options = [
-            node.payload["name"]
-            for node in self.vector_store.search(
-                collection_name=self.vector_collection,
-                query_vector=[0.0],  # Dummy vector as we are using filters
-                query_filter=query_filter
-            )
-        ]
-        return options
+                classification = response.choices[0].message.content.strip().replace(".", "")
+                #debug_print(f"[DEBUG] GPT classification result: {classification}")
+
+                return classification
+    
+
+    def get_all_sectors(self) -> List[str]:
+        """Retrieve all sector names from the hierarchy."""
+        return [child["name"] for child in self.hierarchy.get("children", [])]
+
+    def get_subjects_under_sector(self, sector_name: str) -> List[str]:
+        """Retrieve all subjects under a specific sector."""
+        sector_node = self.find_node(sector_name)
+        if not sector_node or sector_node.get("level") != "sector":
+            raise ValueError(f"Sector {sector_name} not found.")
+        return [child["name"] for child in sector_node.get("children", [])]
+
+    def get_event_types_under_subject(self, sector_name: str, subject_name: str) -> List[str]:
+        """Retrieve all event types under a specific sector and subject."""
+        sector_node = self.find_node(sector_name)
+        if not sector_node or sector_node.get("level") != "sector":
+            raise ValueError(f"Sector '{sector_name}' not found.")
 
 
     def search(self, query: str, query_vector: List[float], top_k):
@@ -177,14 +240,14 @@ class ContextExtractorChain(Chain):
         Returns:
             List[dict]: List of relevant data points.
         """
-        sectors = self.get_current_level_options("sector")
-        sector = self.classify_hierarchy_level(query, sectors, "sector")
+        sectors = self.get_all_sectors()
+        sector = self.classify_with_gpt(query, sectors, "sector")
 
-        subjects = self.get_current_level_options("subject", parent=sector)
-        subject = self.classify_hierarchy_level(query, subjects, "subject")
+        subjects = self.get_subjects_under_sector(sector)
+        subject = self.classify_with_gpt(query, subjects, "subject",sector=sector)
 
-        event_types = self.get_current_level_options("event_type", parent=subject)
-        event_type = self.classify_hierarchy_level(query, event_types, "event_type")
+        event_types = self.get_event_types_under_subject(sector, subject)
+        event_type = self.classify_with_gpt(query, event_types, "event type",sector=sector,subject=subject)
 
         collection_name = f"alpaca_financial_news_{sector}_{subject}_{event_type}".lower().replace(" ", "_")
         data = self.vector_store.search(
