@@ -191,10 +191,10 @@ class HierarchicalDataManager:
                 user_prompt += f"Text: {text}\n\n"
                 user_prompt += f"Options: {', '.join(options)}\n\n"
                 user_prompt += (
-                    "If none of the options seem appropriate for any of the categories, "
-                    "**suggest an appropriate one** based on the content of the document. "
+                    "If the list of options is empty, or none of the options seem appropriate for any of the categories, "
+                    "**suggest an appropriate one** based on the content of the query. "
                     "Your suggestions should be **specific and relevant** to the content. "
-                    "**Do not choose **neither of the options** or **none of them**. "
+                    "**Do not reply **neither of the options** or **none of them** or anything of the sort! this is not valid answer. "
                     "Always provide an answer, even if it means suggesting a new category that fits better.")
 
 
