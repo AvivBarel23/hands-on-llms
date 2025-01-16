@@ -287,6 +287,8 @@ class HierarchicalDataManager:
                     PointStruct(id=idx, vector=vector, payload=_payload)
                     for idx, vector, _payload in zip(ids, document.embeddings, payloads)
                 ]
+                if len(points) > 1 and document.metadata['headline']:
+                    debug_print(f"[DEBUG] Number of points in doc with header {document.metadata['headline']} is {len(points)}")
                 self.client.upsert(collection_name=collection_name, points=points)
                 debug_print(f"[DEBUG] Document saved successfully in {collection_name}")
 
