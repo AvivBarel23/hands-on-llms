@@ -283,6 +283,7 @@ class ContextExtractorChain(Chain):
         debug_print(f"[DEBUG] event_type => '{event_type}'")
 
         collection_name = f"alpaca_financial_news_{sector}_{subject}_{event_type}".lower().replace(" ", "_")
+        debug_print(f"[DEBUG] Classified query to collection name: {collection_name}")
         try:
             data = self.vector_store.search(
                 collection_name=collection_name,
@@ -290,7 +291,7 @@ class ContextExtractorChain(Chain):
                 limit=self.top_k,
             )
         except Exception as e:
-            print(f"######NOT FOUND HIERARCHY FOR COLLECTION NAME {collection_name}!!!!#######")
+            debug_print(f"[DEBUG] ######NOT FOUND HIERARCHY FOR COLLECTION NAME {collection_name}!!!!#######")
             exit(1)
         
         return data
