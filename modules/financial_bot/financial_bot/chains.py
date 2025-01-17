@@ -7,6 +7,7 @@ import datetime
 
 import openai
 import qdrant_client
+from qdrant_client.http import models
 from langchain import chains
 from langchain.callbacks.manager import CallbackManagerForChainRun
 from langchain.chains.base import Chain
@@ -289,15 +290,20 @@ class ContextExtractorChain(Chain):
 
         try:
             # Perform the search with the filter applied
-            data = self.vector_store.search(
-                collection_name=self.vector_collection,
-                query_vector=query_vector,
-                limit=self.top_k,
-                filter={
-                    "must": [
-                        {"key": "collection_name", "match": {"value": doc_collection_name}}
-                    ]
-                }
+
+            filter = models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="collection_name",
+                    match=models.MatchAny(value=[doc_collection_name])
+                )
+            ]
+        )
+            
+            data = self.vector_store.scroll(
+            collection_name=self.vector_collection,
+            limit=10,
+            filter=filter
             )
             
             # Process the search results
