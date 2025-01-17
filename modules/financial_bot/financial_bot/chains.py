@@ -20,7 +20,7 @@ from unstructured.cleaners.core import (
 from financial_bot.embeddings import EmbeddingModelSingleton
 from financial_bot.template import PromptTemplate
 
-INDICES_PATH = "/home/student/hands-on-llms/modules/streaming_pipeline/streaming_pipeline/hierarchy_indices_db.json"
+INDICES_PATH = os.path.join(os.path.dirname(__file__), "../../streaming_pipeline/streaming_pipeline/hierarchy_indices_db.json")
 
 # def debug_print(msg: str):
 #     """
