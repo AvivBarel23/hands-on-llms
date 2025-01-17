@@ -313,12 +313,23 @@ class ContextExtractorChain(Chain):
                 "Authorization": f"Bearer {os.environ['QDRANT_API_KEY']}"  # Add the Authorization header}
             }
 
-            def parse_qdrant_response(response_data: dict) -> List[PointStruct]: 
-                """Parse the JSON response from Qdrant into a Python structure of PointStruct objects.""" 
+
+            def parse_qdrant_response(response_data: dict) -> List[PointStruct]:
+                """Parse the JSON response from Qdrant into a Python structure of PointStruct objects."""
+                
                 points_data = response_data.get("result", {}).get("points", [])
+                debug_print(f"[DEBUG] points_data is {points_data}")
                 
                 # Using list comprehension to handle missing vector field and create PointStruct objects
-                return [PointStruct(**{**point, "vector": point.get("vector", None)}) for point in points_data]
+                return [
+                    PointStruct(
+                        id=point["id"],
+                        vector=point.get("vector", None),  # Use None if vector is missing
+                        payload=point["payload"],
+                        # Add default values for other fields if necessary
+                    )
+                    for point in points_data
+                ]
 
             response = requests.post(endpoint, headers=headers, data=json.dumps(payload))
             response.raise_for_status()  # Raise an error for HTTP codes >= 400
@@ -449,196 +460,4 @@ class FinancialBotQAChain(Chain):
             inputs[key] = cleaned_input
 
         return inputs
-    
-{
-  "result": {
-    "points": [
-      {
-        "id": "062d77ca-cd7e-165f-5f6a-f980f185b875",
-        "payload": {
-          "headline": "EXCLUSIVE: Answering Key Questions About Bitcoin's Future 10 Days Before The Inauguration",
-          "summary": "Bitcoins (CRYPTO: BTC) dip from its all-time high of $108,135 on Dec.",
-          "url": "https://www.benzinga.com/markets/cryptocurrency/25/01/42908193/exclusive-answering-key-questions-about-bitcoins-future-before-inauguration",
-          "symbols": [
-            "BTCUSD"
-          ],
-          "author": "Murtuza Merchant",
-          "created_at": "2025-01-10T11:23:43+00:00",
-          "text": "$108,000 The Top? Asked for their opinion on whether the $108,000 price point was the peak for this cycle, experts m Howell states a 1% chance, a sentiment echoed by Bratcher, who stated that there is a 99% chance that this is not the high for the cycle. Beltran admits that $108,000 represents a significant resistance level, but believes higher prices going forward are likely. Plotnikova is very bullish, saying that $200,000 could be surpassed by the end of 2025. While the short-term outlook remains volatile, experts believe that underlying factors support continued growth in the long term. Read Next: Bitcoin Silk Road Sales Would Affect Leverage Traders More Than Holders, Analyst Argues Image: Shutterstock",
-          "collection_name": "finance__bitcoin__market_impact_analysis"
-        }
-      },
-      {
-        "id": "08eab518-0d22-5fd5-ed84-c33b1c775298",
-        "payload": {
-          "headline": "Bitcoin, Ethereum, XRP, Dogecoin Extend Losses: 'Proper Move' Possibly Only By The End Of January, Trader Warns",
-          "summary": "Cryptocurrency markets are trading lower amid looming tensions of reduced expectations of Federal Reserve interest rate cuts and a potential",
-          "url": "https://www.benzinga.com/markets/cryptocurrency/25/01/42901962/bitcoin-ethereum-xrp-dogecoin-extend-losses",
-          "symbols": [
-            "BTCUSD",
-            "DOGEUSD",
-            "ETHUSD",
-            "SHIBUSD",
-            "SOLUSD",
-            "XRPUSD"
-          ],
-          "author": "Khyathi Dalal",
-          "created_at": "2025-01-09T20:46:34+00:00",
-          "text": "2025 Read Next: Social Media Sentiment Report Shows Only One Out Of Bitcoin, XRP, Dogecoin Is Bullish Image: Shutterstock",
-          "collection_name": "finance__bitcoin__market_impact_analysis"
-        }
-      },
-      {
-        "id": "091c6a88-85ee-2f7d-9a92-53d0a34ed2a4",
-        "payload": {
-          "headline": "Bitcoin Fights To Regain $94,000: What Does Technical Analysis Say?",
-          "summary": "Bitcoin (CRYPTO: BTC) is seeing volatile trading on Friday, briefly regaining the $95,000 market before slumping below $94,000 on a hotter-than-expected j",
-          "url": "https://www.benzinga.com/markets/cryptocurrency/25/01/42913406/bitcoin-fights-to-regain-94000-what-does-technical-analysis-say",
-          "symbols": [
-            "BTCUSD",
-            "ETHUSD",
-            "XRPUSD"
-          ],
-          "author": "Khyathi Dalal",
-          "created_at": "2025-01-10T14:11:09+00:00",
-          "text": "current market cycle is nearing its conclusion, estimating it could wrap up in a few months. However, he remains hopeful for an \"aggressive last leg\" of growth before the cycle ends. He cited former President Donald Trump's pro-crypto stance as a potential driver for market expansion, noting, \"Trump is trying to pump this market, and I think it's still small enough for him to influence.\" DonAlt urged caution, emphasizing the importance of managing risk and securing profits, as the market might not replicate previous cycles meteoric gains. Read Next: Social Media Sentiment Report Shows Only One Out Of Bitcoin, XRP, Dogecoin Is Bullish Image: Shutterstock",
-          "collection_name": "finance__bitcoin__market_impact_analysis"
-        }
-      },
-      {
-        "id": "0d55083d-eba6-149c-641d-adb576551b3d",
-        "payload": {
-          "headline": "Crypto Fear And Greed Index Hits Lowest Level Since October As Bitcoin Falls Under $92K, Dogecoin And Shiba Inu Trade In Red",
-          "summary": "The CMC Crypto Fear and GreedIndexhas plummeted below 50, reaching its lowest point since Oct. 14. This drop coincides withBitcoins (CRYPTO: BTC) price slipping under $92,000, marking a notable change in market sentiment.",
-          "url": "https://www.benzinga.com/markets/cryptocurrency/25/01/42906328/crypto-fear-and-greed-index-hits-lowest-level-since-october-as-bitcoin-falls-under-92k-dogecoin-and-shiba-inu-trade-in-red",
-          "symbols": [
-            "BTC",
-            "BTCUSD",
-            "DOGEUSD",
-            "GBTC",
-            "IBIT",
-            "SHIBUSD"
-          ],
-          "author": "Pooja Rajkumari",
-          "created_at": "2025-01-10T08:48:30+00:00",
-          "text": "Away 8,000 Bitcoin Hard Drive Suffers New Kick In The Teeth As UK Court Dismisses His Claim Disclaimer: This content was partially produced with the help ofBenzinga Neuroand was reviewed and published by Benzinga editors. Image via Shutterstock",
-          "collection_name": "finance__bitcoin__market_impact_analysis"
-        }
-      },
-      {
-        "id": "0dd8e8bd-92cf-30d5-88d1-3480c4d2d37c",
-        "payload": {
-          "headline": "Bitcoin, Ethereum, XRP, Dogecoin Extend Losses: 'Proper Move' Possibly Only By The End Of January, Trader Warns",
-          "summary": "Cryptocurrency markets are trading lower amid looming tensions of reduced expectations of Federal Reserve interest rate cuts and a potential",
-          "url": "https://www.benzinga.com/markets/cryptocurrency/25/01/42901962/bitcoin-ethereum-xrp-dogecoin-extend-losses",
-          "symbols": [
-            "BTCUSD",
-            "DOGEUSD",
-            "ETHUSD",
-            "SHIBUSD",
-            "SOLUSD",
-            "XRPUSD"
-          ],
-          "author": "Khyathi Dalal",
-          "created_at": "2025-01-09T20:46:34+00:00",
-          "text": "2025 Read Next: Social Media Sentiment Report Shows Only One Out Of Bitcoin, XRP, Dogecoin Is Bullish Image: Shutterstock",
-          "collection_name": "finance__bitcoin__market_impact_analysis"
-        }
-      },
-      {
-        "id": "0e3ac513-065b-2496-f84c-85db9e414a3c",
-        "payload": {
-          "headline": "Bitcoin Fights To Regain $94,000: What Does Technical Analysis Say?",
-          "summary": "Bitcoin (CRYPTO: BTC) is seeing volatile trading on Friday, briefly regaining the $95,000 market before slumping below $94,000 on a hotter-than-expected j",
-          "url": "https://www.benzinga.com/markets/cryptocurrency/25/01/42913406/bitcoin-fights-to-regain-94000-what-does-technical-analysis-say",
-          "symbols": [
-            "BTCUSD",
-            "ETHUSD",
-            "XRPUSD"
-          ],
-          "author": "Khyathi Dalal",
-          "created_at": "2025-01-10T14:11:09+00:00",
-          "text": "current market cycle is nearing its conclusion, estimating it could wrap up in a few months. However, he remains hopeful for an \"aggressive last leg\" of growth before the cycle ends. He cited former President Donald Trump's pro-crypto stance as a potential driver for market expansion, noting, \"Trump is trying to pump this market, and I think it's still small enough for him to influence.\" DonAlt urged caution, emphasizing the importance of managing risk and securing profits, as the market might not replicate previous cycles meteoric gains. Read Next: Social Media Sentiment Report Shows Only One Out Of Bitcoin, XRP, Dogecoin Is Bullish Image: Shutterstock",
-          "collection_name": "finance__bitcoin__market_impact_analysis"
-        }
-      },
-      {
-        "id": "155b0ade-dea0-5d9a-2238-5031e22033f2",
-        "payload": {
-          "headline": "Bitcoin And Ethereum ETFs Face $742M In Outflows, With No Supply Shock Expected In 2025; Musk Sees Tesla's FSD Surpassing Humans By Q2 2025; SpaceX Schedules Starship's 7th Test Flight For Monday  Top Headlines While the U.S. Slept",
-          "summary": "",
-          "url": "https://www.benzinga.com/markets/cryptocurrency/25/01/42897320/bitcoin-and-ethereum-etfs-face-742m-in-outflows-with-no-supply-shock-expected-in-2025-musk-sees-teslas-fsd-surpassing-humans-by-q2-2025-spacex-schedules-starships-7th-test-flight-for-monday",
-          "symbols": [
-            "BTCUSD",
-            "ETHUSD",
-            "SPY"
-          ],
-          "author": "Akanksha Bakshi",
-          "created_at": "2025-01-09T14:51:55+00:00",
-          "text": "$300 Million In AI Data Firm That Powers Elon Musks xAI Supercomputer BlackRock Reportedly Faces $600 Million Loss In Alacrity Restructuring Ahead Of Earnings Report General Los Angeles Wildfires Will Be Tamed By This Day, Predict Polymarket Users  Observers Raise Ethical Question Space SpaceX CEO Elon Musk Offers Free Starlink Terminals To Los Angeles Areas Affected By Wildfires SpaceXs Starship 7th Test Flight Now Slated For Monday Ex-Google CEO Eric Schmidt Invests In 3D-Printed Rocket Maker As SpaceX-Led Space Race Heats Up Energy Canadian Natural Resources Sets $4.2 Billion Budget For 2025, Targets 12% Production Growth Los Angeles Wildfires Stoke Investor Fears: Edison Internationals Stock Ended 10% Lower On Wednesday Amid Concerns Over Possible Equipment Links To Forest Fires Photo by CMP_NZ on Shutterstock",
-          "collection_name": "finance__bitcoin__market_impact_analysis"
-        }
-      },
-      {
-        "id": "16125198-8464-8c99-a3e3-407bd41f54d9",
-        "payload": {
-          "headline": "Crypto Fear And Greed Index Hits Lowest Level Since October As Bitcoin Falls Under $92K, Dogecoin And Shiba Inu Trade In Red",
-          "summary": "The CMC Crypto Fear and GreedIndexhas plummeted below 50, reaching its lowest point since Oct. 14. This drop coincides withBitcoins (CRYPTO: BTC) price slipping under $92,000, marking a notable change in market sentiment.",
-          "url": "https://www.benzinga.com/markets/cryptocurrency/25/01/42906328/crypto-fear-and-greed-index-hits-lowest-level-since-october-as-bitcoin-falls-under-92k-dogecoin-and-shiba-inu-trade-in-red",
-          "symbols": [
-            "BTC",
-            "BTCUSD",
-            "DOGEUSD",
-            "GBTC",
-            "IBIT",
-            "SHIBUSD"
-          ],
-          "author": "Pooja Rajkumari",
-          "created_at": "2025-01-10T08:48:30+00:00",
-          "text": "Away 8,000 Bitcoin Hard Drive Suffers New Kick In The Teeth As UK Court Dismisses His Claim Disclaimer: This content was partially produced with the help ofBenzinga Neuroand was reviewed and published by Benzinga editors. Image via Shutterstock",
-          "collection_name": "finance__bitcoin__market_impact_analysis"
-        }
-      },
-      {
-        "id": "303ec9c2-5462-65c2-0b74-19baf5598340",
-        "payload": {
-          "headline": "Bitcoin Fights To Regain $94,000: What Does Technical Analysis Say?",
-          "summary": "Bitcoin (CRYPTO: BTC) is seeing volatile trading on Friday, briefly regaining the $95,000 market before slumping below $94,000 on a hotter-than-expected j",
-          "url": "https://www.benzinga.com/markets/cryptocurrency/25/01/42913406/bitcoin-fights-to-regain-94000-what-does-technical-analysis-say",
-          "symbols": [
-            "BTCUSD",
-            "ETHUSD",
-            "XRPUSD"
-          ],
-          "author": "Khyathi Dalal",
-          "created_at": "2025-01-10T14:11:09+00:00",
-          "text": "current market cycle is nearing its conclusion, estimating it could wrap up in a few months. However, he remains hopeful for an \"aggressive last leg\" of growth before the cycle ends. He cited former President Donald Trump's pro-crypto stance as a potential driver for market expansion, noting, \"Trump is trying to pump this market, and I think it's still small enough for him to influence.\" DonAlt urged caution, emphasizing the importance of managing risk and securing profits, as the market might not replicate previous cycles meteoric gains. Read Next: Social Media Sentiment Report Shows Only One Out Of Bitcoin, XRP, Dogecoin Is Bullish Image: Shutterstock",
-          "collection_name": "finance__bitcoin__market_impact_analysis"
-        }
-      },
-      {
-        "id": "37d5b612-49da-1c8e-4f9d-9606e5be384f",
-        "payload": {
-          "headline": "Crypto Fear And Greed Index Hits Lowest Level Since October As Bitcoin Falls Under $92K, Dogecoin And Shiba Inu Trade In Red",
-          "summary": "The CMC Crypto Fear and GreedIndexhas plummeted below 50, reaching its lowest point since Oct. 14. This drop coincides withBitcoins (CRYPTO: BTC) price slipping under $92,000, marking a notable change in market sentiment.",
-          "url": "https://www.benzinga.com/markets/cryptocurrency/25/01/42906328/crypto-fear-and-greed-index-hits-lowest-level-since-october-as-bitcoin-falls-under-92k-dogecoin-and-shiba-inu-trade-in-red",
-          "symbols": [
-            "BTC",
-            "BTCUSD",
-            "DOGEUSD",
-            "GBTC",
-            "IBIT",
-            "SHIBUSD"
-          ],
-          "author": "Pooja Rajkumari",
-          "created_at": "2025-01-10T08:48:30+00:00",
-          "text": "Away 8,000 Bitcoin Hard Drive Suffers New Kick In The Teeth As UK Court Dismisses His Claim Disclaimer: This content was partially produced with the help ofBenzinga Neuroand was reviewed and published by Benzinga editors. Image via Shutterstock",
-          "collection_name": "finance__bitcoin__market_impact_analysis"
-        }
-      }
-    ],
-    "next_page_offset": "395dc4ed-d999-916a-6e9b-f8797ca834e1"
-  },
-  "status": "ok",
-  "time": 0.024753205
-}
+
