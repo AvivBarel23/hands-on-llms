@@ -309,7 +309,8 @@ class ContextExtractorChain(Chain):
             }
 
             headers = {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {os.environ['QDRANT_API_KEY']}"  # Add the Authorization header}
             }
 
             def parse_qdrant_response(response_data: dict) -> List[ScoredPoint]: 
