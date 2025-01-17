@@ -295,10 +295,20 @@ class ContextExtractorChain(Chain):
             debug_print(f"[DEBUG] before search in vector store")
 
             data = self.vector_store.search(
-                query_vector=query_vector,
-                k=self.top_k,
-                collection_name=self.vector_collection,
-            )
+            query_vector=query_vector,
+            collection_name=self.vector_collection,
+            limit=self.top_k,
+            query_filter={
+                "must": [
+                    {
+                        "key": "collection_name",
+                        "match": {
+                            "value": doc_collection_name  # Replace `specific_value` with your desired value
+                        }
+                    }
+                ]
+            }
+        )
 
             debug_print(f"[DEBUG] returned data is {data} and type is {type(data)}")
 
