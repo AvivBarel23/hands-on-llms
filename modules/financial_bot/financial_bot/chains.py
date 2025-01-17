@@ -291,6 +291,7 @@ class ContextExtractorChain(Chain):
         try:
             # Perform the search with the filter applied
 
+            debug_print(f"[DEBUG] before filter, value in filter is: {[doc_collection_name]}")
             filter = models.Filter(
                     must=[
                         models.FieldCondition(
