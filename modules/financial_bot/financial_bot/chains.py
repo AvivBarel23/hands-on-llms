@@ -163,6 +163,7 @@ class ContextExtractorChain(Chain):
 
 
     def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None) -> str:
+                debug_print(f"[DEBUG] query is: {text}")
                 system_prompt = f"""
                     You are tasked with classifying the following LLM user query into the following three categories:
 
@@ -196,11 +197,9 @@ class ContextExtractorChain(Chain):
                 user_prompt += f"Text: {text}\n\n"
                 user_prompt += f"Options: {', '.join(options)}\n\n"
                 user_prompt += (
-                    "If the list of options is empty, or none of the options seem appropriate for any of the categories, "
-                    "**suggest an appropriate one** based on the content of the query. "
                     "Your suggestions should be **specific and relevant** to the content. "
-                    "**Do not reply **neither of the options** or **none of them** or anything of the sort! this is not valid answer. "
-                    "Always provide an answer, even if it means suggesting a new category that fits better.\nThe answer must be only the name of the {level} without any garbage!")
+                    "**Do not reply **neither of the options** or **none of them** or anything of the sort! this is not valid answer! You must choose something from the options!. "
+                    "Always provide an answer from the given option.\nThe answer must be only the name of the {level} without any garbage!")
 
 
 
