@@ -298,7 +298,7 @@ class ContextExtractorChain(Chain):
             query_vector=query_vector,
             collection_name=self.vector_collection,
             limit=self.top_k,
-            timeout=120.0,
+            timeout=360.0,
             query_filter={
                 "must": [
                     {
