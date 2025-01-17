@@ -292,13 +292,17 @@ class ContextExtractorChain(Chain):
             # Perform the search with the filter applied
 
             filter = models.Filter(
-            must=[
-                models.FieldCondition(
-                    key="collection_name",
-                    match=models.MatchAny(value=[doc_collection_name])
+                    must=[
+                        models.FieldCondition(
+                            key="collection_name",
+                            match=models.MatchAny(
+                            value=[doc_collection_name]  # Ensure this is a list of strings
+                            )
+                        )
+                    ]
                 )
-            ]
-        )
+            
+            debug_print(f"[DEBUG] value in filter is: {[doc_collection_name]}")
             
             data = self.vector_store.scroll(
             collection_name=self.vector_collection,
