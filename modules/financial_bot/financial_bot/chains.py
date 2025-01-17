@@ -2,6 +2,8 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 import json
+import inspect
+import datetime
 
 import openai
 import qdrant_client
@@ -21,23 +23,24 @@ from financial_bot.embeddings import EmbeddingModelSingleton
 from financial_bot.template import PromptTemplate
 
 INDICES_PATH = os.path.join(os.path.dirname(__file__), "../../streaming_pipeline/streaming_pipeline/hierarchy_indices_db.json")
+LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "debug.log")
 
-# def debug_print(msg: str):
-#     """
-#     Logs debug messages to `debug.log` in this directory,
-#     including timestamp, filename, and line number.
-#     """
-#     # Capture call frame info (who called debug_print)
-#     frame_info = inspect.stack()[1]
-#     filename = os.path.basename(frame_info.filename)
-#     lineno = frame_info.lineno
+def debug_print(msg: str):
+    """
+    Logs debug messages to `debug.log` in this directory,
+    including timestamp, filename, and line number.
+    """
+    # Capture call frame info (who called debug_print)
+    frame_info = inspect.stack()[1]
+    filename = os.path.basename(frame_info.filename)
+    lineno = frame_info.lineno
 
-#     # Optional timestamp
-#     now_str = datetime.datetime.now().isoformat()
+    # Optional timestamp
+    now_str = datetime.datetime.now().isoformat()
 
-#     formatted_msg = f"[{now_str}][{filename}:{lineno}] {msg}"
-#     with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
-#         f.write(formatted_msg + "\n")
+    formatted_msg = f"[{now_str}][{filename}:{lineno}] {msg}"
+    with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
+        f.write(formatted_msg + "\n")
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
     """
@@ -189,6 +192,7 @@ class ContextExtractorChain(Chain):
                     user_prompt += (
                         f"Based on the following text, decide which {level} it belongs to:\n\n"
                     )
+                debug_print(f"[DEBUG] Options are {options}, type is {type(options)}")
                 user_prompt += f"Text: {text}\n\n"
                 user_prompt += f"Options: {', '.join(options)}\n\n"
                 user_prompt += (
@@ -257,13 +261,19 @@ class ContextExtractorChain(Chain):
             List[dict]: List of relevant data points.
         """
         sectors = self.get_all_sectors()
+        debug_print(f"[DEBUG] Found existing sectors: {sectors}")
         sector = self.classify_with_gpt(query, sectors, "sector")
+        debug_print(f"[DEBUG] sector => '{sector}'")
 
         subjects = self.get_subjects_under_sector(sector)
+        debug_print(f"[DEBUG] Found existing subjects under sector '{sector}': {subjects}")
         subject = self.classify_with_gpt(query, subjects, "subject",sector=sector)
+        debug_print(f"[DEBUG] subject => '{subject}'")
 
         event_types = self.get_event_types_under_subject(sector, subject)
+        debug_print(f"[DEBUG] Found existing event types under subject '{subject}': {event_types}")
         event_type = self.classify_with_gpt(query, event_types, "event type",sector=sector,subject=subject)
+        debug_print(f"[DEBUG] event_type => '{event_type}'")
 
         collection_name = f"alpaca_financial_news_{sector}_{subject}_{event_type}".lower().replace(" ", "_")
         try:
