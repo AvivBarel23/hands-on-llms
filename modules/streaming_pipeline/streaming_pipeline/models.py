@@ -100,7 +100,7 @@ class Document(BaseModel):
     chunks: list = []
     embeddings: list = []
 
-    def to_payloads(self) -> Tuple[List[str], List[dict]]:
+    def to_payloads(self, collection_name: str) -> Tuple[List[str], List[dict]]:
         """
         Returns the payloads of the document.
 
@@ -113,6 +113,7 @@ class Document(BaseModel):
         for chunk in self.chunks:
             payload = self.metadata
             payload.update({"text": chunk})
+            payload.update({"collection_name": collection_name})
             # Create the chunk ID using the hash of the chunk to avoid storing duplicates.
             chunk_id = hashlib.md5(chunk.encode()).hexdigest()
 

@@ -81,10 +81,11 @@ def build_qdrant_client(url: Optional[str] = None, api_key: Optional[str] = None
 
 
 class HierarchicalDataManager:
-    def __init__(self, qdrant_client: QdrantClient):
+    def __init__(self, qdrant_client: QdrantClient, collection_name: str):
         self.new_node_id = 0
         self.client = qdrant_client
         self.hierarchy_file = INDICES_PATH
+        self.collection_name = collection_name
         openai.api_key = os.environ["OPENAI_API_KEY"]
 
         # Load existing hierarchy or initialize a new one
@@ -260,41 +261,23 @@ class HierarchicalDataManager:
         debug_print("[DEBUG] Hierarchy saved to JSON file.")
 
         # Step 4: Save the document in its specific Qdrant collection
-        collection_name = f"alpaca_financial_news_{sector}_{subject}_{event_type}".lower().replace(" ", "_")
-        debug_print(f"[DEBUG] Final collection_name => '{collection_name}'")
-
+        doc_collection_name = f"{sector}__{subject}__{event_type}".lower().replace(" ", "_")
+        debug_print(f"[DEBUG] Final collection_name => '{doc_collection_name}'")
+        # Upsert the document embeddings into Qdrant
         try:
-            v=self.client.get_collection(collection_name)
-            debug_print(f"[DEBUG] Collection v = {v} 121212121")
-        except Exception as e:
-            debug_print(f"[DEBUG] Collection '{collection_name}' does NOT exist; creating.")
-            try:
-                if not document.embeddings:
-                    raise ValueError("document.embeddings is missing or empty.")
-                vector_size = len(document.embeddings[0])
-                self.client.create_collection(
-                    collection_name=collection_name,
-                    vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
-                )
-                debug_print(f"[DEBUG] Created new collection with vector_size={vector_size}")
-            except Exception as e:
-                debug_print(f"[DEBUG] Exception when creating new collection: {e} !!!!!!!!!!!!!")
-        finally:
-            # Upsert the document embeddings into Qdrant
-            try:
-                ids, payloads = document.to_payloads()
-                points = [
-                    PointStruct(id=idx, vector=vector, payload=_payload)
-                    for idx, vector, _payload in zip(ids, document.embeddings, payloads)
-                ]
-                if len(points) > 1 and document.metadata['headline']:
-                    debug_print(f"[DEBUG] Number of points in doc with header {document.metadata['headline']} is {len(points)}")
-                self.client.upsert(collection_name=collection_name, points=points)
-                debug_print(f"[DEBUG] Document saved successfully in {collection_name}")
+            ids, payloads = document.to_payloads(doc_collection_name)
+            points = [
+                PointStruct(id=idx, vector=vector, payload=_payload)
+                for idx, vector, _payload in zip(ids, document.embeddings, payloads)
+            ]
+            # if len(points) > 1 and document.metadata['headline']:
+            #     debug_print(f"[DEBUG] Number of points in doc with header {document.metadata['headline']} is {len(points)}")
+            self.client.upsert(collection_name=self.collection_name, points=points)
+            debug_print(f"[DEBUG] Document saved successfully in {self.collection_name}")
 
-                debug_print("[DEBUG] save_data END")
-            except Exception as e:
-                debug_print(f"[DEBUG] Exception when upserting to new collection: {e}")
+            debug_print("[DEBUG] save_data END")
+        except Exception as e:
+            debug_print(f"[DEBUG] Exception when upserting to new collection: {e}")
 
 
 class QdrantVectorSink(StatelessSink):
@@ -313,7 +296,7 @@ class QdrantVectorSink(StatelessSink):
         collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
     ):
         debug_print("[DEBUG] QdrantVectorSink.__init__ START")
-        self.hierarchical_data_manager = HierarchicalDataManager(client)
+        self.hierarchical_data_manager = HierarchicalDataManager(client, collection_name)
         debug_print("[DEBUG] QdrantVectorSink.__init__ END")
 
     def write(self, document: Document):
