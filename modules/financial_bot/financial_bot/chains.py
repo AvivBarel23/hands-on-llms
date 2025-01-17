@@ -179,6 +179,8 @@ class ContextExtractorChain(Chain):
                     The type of event or activity described in the query (e.g., merger, financial report, product launch, acquisition, scientific discovery).
                     - **Explanation**: The **Event Type** categorizes what the query describes in terms of events or activities. For example, if the query talks about a company merger, it should be classified under **Merger**. If it's about a product release by **Apple**, it should be classified as a **Product Launch**. If no event type matches the options, suggest one based on the query's context.
                             """
+                
+                
                 user_prompt=""
                 # Building the prompt based on the level
                 if level == "subject":
