@@ -165,7 +165,7 @@ class ContextExtractorChain(Chain):
     def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None) -> str:
                 debug_print(f"[DEBUG] query is: {text}")
                 system_prompt = f"""
-                    You are tasked with classifying the following LLM user query into the following three categories:
+                    You are tasked with classifying the following user query into the following three categories:
 
                     ### 1. **Sector**:
                     The broad industry or field to which the query talks about (e.g., Finance, Healthcare, Technology).
