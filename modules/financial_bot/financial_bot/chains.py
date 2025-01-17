@@ -142,6 +142,21 @@ class ContextExtractorChain(Chain):
     @property
     def output_keys(self) -> List[str]:
         return ["context"]
+    
+    def find_node(self, name, current_node=None):
+        """Recursively search for a node in the hierarchy by name."""
+        if current_node is None:
+            current_node = self.hierarchy
+
+        if current_node["name"] == name:
+            return current_node
+
+        for child in current_node.get("children", []):
+            result = self.find_node(name, child)
+            if result:
+                return result
+
+        return None
 
 
     def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None) -> str:
