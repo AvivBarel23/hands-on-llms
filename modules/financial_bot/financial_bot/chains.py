@@ -292,54 +292,67 @@ class ContextExtractorChain(Chain):
         try:
             # Perform the search with the filter applied
 
-            endpoint = f'{os.environ["QDRANT_URL"]}/collections/alpaca_financial_news/points/scroll'
+            debug_print(f"[DEBUG] before search in vector store")
 
-            payload = {
-                "limit": 50,
-                "filter": {
-                    "must": [
-                        {
-                            "key": "collection_name",
-                            "match": {
-                                "any": [f"{doc_collection_name}"]
-                            }
-                        }
-                    ]
-                }
-            }
+            data = self.vector_store.search(
+                query_vector=query_vector,
+                k=self.top_k,
+                collection_name=self.vector_collection,
+            )
 
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {os.environ['QDRANT_API_KEY']}"  # Add the Authorization header}
-            }
+            debug_print(f"[DEBUG] returned data is {data} and type is {type(data)}")
+
+            # endpoint = f'{os.environ["QDRANT_URL"]}/collections/alpaca_financial_news/points/scroll'
+
+            # payload = {
+            #     "limit": 50,
+            #     "filter": {
+            #         "must": [
+            #             {
+            #                 "key": "collection_name",
+            #                 "match": {
+            #                     "any": [f"{doc_collection_name}"]
+            #                 }
+            #             }
+            #         ]
+            #     }
+            # }
+
+            # headers = {
+            #     "Content-Type": "application/json",
+            #     "Authorization": f"Bearer {os.environ['QDRANT_API_KEY']}"  # Add the Authorization header}
+            # }
 
 
-            def parse_qdrant_response(response_data: dict) -> List[PointStruct]:
-                """Parse the JSON response from Qdrant into a Python structure of PointStruct objects."""
+            # def parse_qdrant_response(response_data: dict) -> List[PointStruct]:
+            #     """Parse the JSON response from Qdrant into a Python structure of PointStruct objects."""
                 
-                points_data = response_data.get("result", {}).get("points", [])
-                debug_print(f"[DEBUG] points_data is {points_data}")
+            #     points_data = response_data.get("result", {}).get("points", [])
+            #     debug_print(f"[DEBUG] points_data is {points_data}")
                 
-                # Using list comprehension to handle missing vector field and create PointStruct objects
-                return [
-                    PointStruct(
-                        id=point["id"],
-                        vector=point.get("vector", None),  # Use None if vector is missing
-                        payload=point["payload"],
-                        # Add default values for other fields if necessary
-                    )
-                    for point in points_data
-                ]
-
-            response = requests.post(endpoint, headers=headers, data=json.dumps(payload))
-            response.raise_for_status()  # Raise an error for HTTP codes >= 400
-
-            debug_print(f"[DEBUG] After request {response.json()}")
-
-            data = parse_qdrant_response(response.json())
+            #     # Using list comprehension to handle missing vector field and create PointStruct objects
+            #     return [
+            #         PointStruct(
+            #             id=point["id"],
+            #             vector=point.get("vector", None),  # Use None if vector is missing
+            #             payload=point["payload"],
+            #             # Add default values for other fields if necessary
+            #         )
+            #         for point in points_data
+            #     ]
             
-            # Process the search results
-            debug_print(f"[DEBUG] Search results: {data}")
+
+            # {'id': '062d77ca-cd7e-165f-5f6a-f980f185b875', 'payload': {'headline': "EXCLUSIVE: Answering Key Questions About Bitcoin's Future 10 Days Before The Inauguration", 'summary': 'Bitcoins (CRYPTO: BTC) dip from its all-time high of $108,135 on Dec.', 'url': 'https://www.benzinga.com/markets/cryptocurrency/25/01/42908193/exclusive-answering-key-questions-about-bitcoins-future-before-inauguration', 'symbols': ['BTCUSD'], 'author': 'Murtuza Merchant', 'created_at': '2025-01-10T11:23:43+00:00', 'text': '$108,000 The Top? Asked for their opinion on whether the $108,000 price point was the peak for this cycle, experts m Howell states a 1% chance, a sentiment echoed by Bratcher, who stated that there is a 99% chance that this is not the high for the cycle. Beltran admits that $108,000 represents a significant resistance level, but believes higher prices going forward are likely. Plotnikova is very bullish, saying that $200,000 could be surpassed by the end of 2025. While the short-term outlook remains volatile, experts believe that underlying factors support continued growth in the long term. Read Next: Bitcoin Silk Road Sales Would Affect Leverage Traders More Than Holders, Analyst Argues Image: Shutterstock', 'collection_name': 'finance__bitcoin__market_impact_analysis'}}
+
+            # response = requests.post(endpoint, headers=headers, data=json.dumps(payload))
+            # response.raise_for_status()  # Raise an error for HTTP codes >= 400
+
+            # debug_print(f"[DEBUG] After request {response.json()}")
+
+            # data = parse_qdrant_response(response.json())
+            
+            # # Process the search results
+            # debug_print(f"[DEBUG] Search results: {data}")
 
         except Exception as e:
             debug_print(f"[ERROR] No matches for this query!!!: {e}")
