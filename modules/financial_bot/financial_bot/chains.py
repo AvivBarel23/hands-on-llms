@@ -4,8 +4,9 @@ from typing import Any, Dict, List, Optional
 import json
 import inspect
 import datetime
-
+import requests
 import openai
+
 import qdrant_client
 from qdrant_client.http import models
 from langchain import chains
