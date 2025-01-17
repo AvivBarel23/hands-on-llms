@@ -293,15 +293,15 @@ class ContextExtractorChain(Chain):
 
             debug_print(f"[DEBUG] before filter, value in filter is: {[doc_collection_name]}")
             filter = models.Filter(
-                    must=[
-                        models.FieldCondition(
-                            key="collection_name",
-                            match=models.MatchAny(
-                            value=[doc_collection_name]  # Ensure this is a list of strings
-                            )
+                must=[
+                    models.FieldCondition(
+                        key="collection_name",  # Field to filter on
+                        match=models.MatchAny(
+                            any=[doc_collection_name]  # List of values to match
                         )
-                    ]
-                )
+                    )
+                ]
+            )
             
             debug_print(f"[DEBUG] value in filter is: {[doc_collection_name]}")
             
