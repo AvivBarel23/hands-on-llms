@@ -247,6 +247,13 @@ class ContextExtractorChain(Chain):
         if not sector_node or sector_node.get("level") != "sector":
             raise ValueError(f"Sector '{sector_name}' not found.")
 
+        subject_node = next(
+            (child for child in sector_node.get("children", []) if child["name"] == subject_name), None
+        )
+        if not subject_node or subject_node.get("level") != "subject":
+            raise ValueError(f"Subject {subject_name} not found under sector {sector_name}.")
+        return [child["name"] for child in subject_node.get("children", [])]
+
 
     def search(self, query: str, query_vector: List[float], top_k):
         """
