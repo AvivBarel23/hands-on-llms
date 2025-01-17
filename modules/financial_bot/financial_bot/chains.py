@@ -8,7 +8,7 @@ import requests
 import openai
 
 import qdrant_client
-from qdrant_client.http import models
+from qdrant_client.models import ScoredPoint
 from langchain import chains
 from langchain.callbacks.manager import CallbackManagerForChainRun
 from langchain.chains.base import Chain
@@ -292,25 +292,37 @@ class ContextExtractorChain(Chain):
         try:
             # Perform the search with the filter applied
 
-            debug_print(f"[DEBUG] before filter, value in filter is: {[doc_collection_name]}")
-            filter = models.Filter(
-                must=[
-                    models.FieldCondition(
-                        key="collection_name",  # Field to filter on
-                        match=models.MatchAny(
-                            any=[doc_collection_name]  # List of values to match
-                        )
-                    )
-                ]
-            )
-            
-            debug_print(f"[DEBUG] value in filter is: {[doc_collection_name]}")
-            
-            data = self.vector_store.scroll(
-            collection_name=self.vector_collection,
-            limit=10,
-            filter=filter
-            )
+            endpoint = f'{os.environ["QDRANT_URL"]}/collections/alpaca_financial_news/points/scroll'
+
+            payload = {
+                "limit": 50,
+                "filter": {
+                    "must": [
+                        {
+                            "key": "collection_name",
+                            "match": {
+                                "any": [f"{doc_collection_name}"]
+                            }
+                        }
+                    ]
+                }
+            }
+
+            headers = {
+                "Content-Type": "application/json"
+            }
+
+            def parse_qdrant_response(response_data: dict) -> List[ScoredPoint]: 
+                """Parse the JSON response from Qdrant into a Python structure of ScoredPoint objects.""" 
+                points_data = response_data.get("result", {}).get("points", [])
+                return [ScoredPoint(**point) for point in points_data]
+
+            response = requests.post(endpoint, headers=headers, data=json.dumps(payload))
+            response.raise_for_status()  # Raise an error for HTTP codes >= 400
+
+            debug_print(f"[DEBUG] After request {response}")
+
+            data = parse_qdrant_response(response.json())
             
             # Process the search results
             debug_print(f"[DEBUG] Search results: {data}")
