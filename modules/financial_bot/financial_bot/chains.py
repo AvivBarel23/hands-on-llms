@@ -130,6 +130,7 @@ class ContextExtractorChain(Chain):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.vector_collection = kwargs.get("vector_collection", None)
 
         # Load existing hierarchy or initialize a new one
         if os.path.exists(self.hierarchy_file):
@@ -283,17 +284,28 @@ class ContextExtractorChain(Chain):
         event_type = self.classify_with_gpt(query, event_types, "event type",sector=sector,subject=subject)
         debug_print(f"[DEBUG] event_type => '{event_type}'")
 
-        collection_name = f"alpaca_financial_news_{sector}_{subject}_{event_type}".lower().replace(" ", "_")
-        debug_print(f"[DEBUG] Classified query to collection name: {collection_name}")
+        doc_collection_name = f"{sector}__{subject}__{event_type}".lower().replace(" ", "_")
+        debug_print(f"[DEBUG] Classified query to collection name: {doc_collection_name}")
+
         try:
+            # Perform the search with the filter applied
             data = self.vector_store.search(
-                collection_name=collection_name,
+                collection_name=self.vector_collection,
                 query_vector=query_vector,
                 limit=self.top_k,
+                filter={
+                    "must": [
+                        {"key": "collection_name", "match": {"value": doc_collection_name}}
+                    ]
+                }
             )
+            
+            # Process the search results
+            debug_print(f"[DEBUG] Search results: {data}")
+
         except Exception as e:
-            debug_print(f"[DEBUG] ######NOT FOUND HIERARCHY FOR COLLECTION NAME {collection_name}!!!!#######")
-            exit(1)
+            debug_print(f"[ERROR] No matches for this query!!!: {e}")
+            exit(1)     
         
         return data
 
