@@ -339,7 +339,7 @@ class ContextExtractorChain(Chain):
                             query_vector=query_vector,
                             collection_name=self.vector_collection,
                             limit=top_k,
-                            timeout=360.0,
+                            timeout=360,
                             query_filter={
                                 "must": [
                                     {
@@ -371,7 +371,7 @@ class ContextExtractorChain(Chain):
         return sorted_results[:top_k]  # Return the top-k documents based on score
 
 
-    def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+    def _call(self, inputs: Dict[str, Any]) -> string:
         openai.api_key = os.environ["OPENAI_API_KEY"]
         _, quest_key = self.input_keys
         question_str = inputs[quest_key]
@@ -388,7 +388,6 @@ class ContextExtractorChain(Chain):
 
         debug_print(f"[DEBUG]\n" + "\n".join(f"match: {item}" for item in matches))
 
-        context = ""
         text=""
         for match in matches:
             payload = match.payload
@@ -396,11 +395,8 @@ class ContextExtractorChain(Chain):
 
         summary=self.summarize_with_gpt(text)
         debug_print(f"[DEBUG] summary with gpt: {summary}")
-        context+=summary+"\n"
-        debug_print(f"[DEBUG] context : {context}")
-
         return {
-                "context": context,
+                "context": summary,
             }
 
     def clean(self, question: str) -> str:
