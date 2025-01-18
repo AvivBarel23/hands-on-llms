@@ -123,7 +123,7 @@ class ContextExtractorChain(Chain):
         The path to the hierarchy json file created in the streaming pipeline.
     """
 
-    top_k: int = 10
+    top_k: int = 3
     embedding_model: EmbeddingModelSingleton
     vector_store: qdrant_client.QdrantClient
     vector_collection: str
@@ -133,7 +133,7 @@ class ContextExtractorChain(Chain):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vector_collection = kwargs.get("vector_collection", None)
-        self.top_k = kwargs.get("top_k", None)
+        self.top_k = 3
         # Load existing hierarchy or initialize a new one
         if os.path.exists(self.hierarchy_file):
             with open(self.hierarchy_file, "r") as f:
