@@ -422,16 +422,15 @@ class ContextExtractorChain(Chain):
             if summary and len(summary) > 0:
                 context += summary + "\n"
                 debug_print(f"[DEBUG] Adding context: {summary}")
-            else:
-                text += payload.get("text", "")
-                context += summary + "\n"
-                debug_print(f"[DEBUG] summary with gpt: {summary}")
-                debug_print(f"[DEBUG] Adding context: {context}")
+
         summary=self.summarize_with_gpt( text)
+        debug_print(f"[DEBUG] summary with gpt: {summary}")
         context+=summary+"\n"
+        debug_print(f"[DEBUG] context : {context}")
+
         return {
-            "context": context,
-        }
+                "context": context,
+            }
 
     def clean(self, question: str) -> str:
         """
