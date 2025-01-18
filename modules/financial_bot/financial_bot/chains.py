@@ -216,7 +216,7 @@ class ContextExtractorChain(Chain):
         classification = response.choices[0].message.content.strip().replace(".", "")
         top_k_options = [opt.strip() for opt in classification.split(",")][:top_k]  # Split and limit to top k
 
-        debug_print(f"[DEBUG] GPT classification result: {top_k_options}")
+        debug_print(f"[DEBUG] user prompt :{user_prompt}, GPT classification result: {top_k_options}")
         return top_k_options
 
     def summarize_with_gpt(self, text: str) -> str:
@@ -489,4 +489,3 @@ class FinancialBotQAChain(Chain):
             inputs[key] = cleaned_input
 
         return inputs
-
