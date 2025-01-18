@@ -172,15 +172,15 @@ class ContextExtractorChain(Chain):
         # Building the prompt based on the level
         if level == "subject":
             user_prompt += (
-                f"you need to decide which subject the following text belongs under the sector '{sector}':\n\n"
+                f"you need to return the top {top_k} {level}s the following text belongs under the sector '{sector}':\n\n"
             )
         elif level == "event type":
             user_prompt += (
-                f"Based on the following text, decide which event type it belongs to under the sector '{sector}' and subject '{subject}':\n\n"
+                f"Based on the following text, return the top {top_k} {level}s it belongs to under the sector '{sector}' and subject '{subject}':\n\n"
             )
         else:
             user_prompt += (
-                f"Based on the following text, decide which {level} it belongs to:\n\n"
+                f"Based on the following text, return the top {top_k} {level}s it belongs to:\n\n"
             )
 
         debug_print(f"[DEBUG] Options are {options}, type is {type(options)}")
