@@ -371,7 +371,7 @@ class ContextExtractorChain(Chain):
         return sorted_results[:top_k]  # Return the top-k documents based on score
 
 
-    def _call(self, inputs: Dict[str, Any]) -> string:
+    def _call(self, inputs: Dict[str, Any]) -> dict[str, Any]:
         openai.api_key = os.environ["OPENAI_API_KEY"]
         _, quest_key = self.input_keys
         question_str = inputs[quest_key]
