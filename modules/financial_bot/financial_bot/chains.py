@@ -148,90 +148,76 @@ class ContextExtractorChain(Chain):
     @property
     def output_keys(self) -> List[str]:
         return ["context"]
+
+
+    def classify_with_gpt(self, text: str, options: List[str], level: str, top_k: int = 1, sector: Optional[str] = None, subject: Optional[str] = None) -> List[str]:
+        debug_print(f"[DEBUG] query is: {text}")
+        system_prompt = f"""
+            You are tasked with classifying the following user query into the following three categories:
     
-    def find_node(self, name, current_node=None):
-        """Recursively search for a node in the hierarchy by name."""
-        if current_node is None:
-            current_node = self.hierarchy
+            ### 1. **Sector**:
+            The broad industry or field to which the query talks about (e.g., Finance, Healthcare, Technology).
+            - **Explanation**: The **Sector** is the broadest classification. For instance, if the query is about healthcare services or innovations in the medical field, it would fall under **Healthcare**. If it's about technology products or software development, it would fall under **Technology**. Please pick the sector that fits best based on the text.
+    
+            ### 2. **Company/Subject**:
+            The specific company or subject of the query (e.g., Google, Tesla, artificial intelligence, climate change).
+            - **Explanation**: The **Company/Subject** level focuses on the specific company or subject mentioned. For example, if the query mentions a new technology by **Apple** or discusses **Artificial Intelligence**, the response should reflect that. If the subject doesn’t match the options, suggest a fitting one. You can classify topics like "climate change" under the **Subject** category even if it isn't a company.
+    
+            ### 3. **Event Type**:
+            The type of event or activity described in the query (e.g., merger, financial report, product launch, acquisition, scientific discovery).
+            - **Explanation**: The **Event Type** categorizes what the query describes in terms of events or activities. For example, if the query talks about a company merger, it should be classified under **Merger**. If it's about a product release by **Apple**, it should be classified as a **Product Launch**. If no event type matches the options, suggest one based on the query's context.
+        """
 
-        if current_node["name"] == name:
-            return current_node
+        user_prompt = ""
+        # Building the prompt based on the level
+        if level == "subject":
+            user_prompt += (
+                f"you need to decide which subject the following text belongs under the sector '{sector}':\n\n"
+            )
+        elif level == "event type":
+            user_prompt += (
+                f"Based on the following text, decide which event type it belongs to under the sector '{sector}' and subject '{subject}':\n\n"
+            )
+        else:
+            user_prompt += (
+                f"Based on the following text, decide which {level} it belongs to:\n\n"
+            )
 
-        for child in current_node.get("children", []):
-            result = self.find_node(name, child)
-            if result:
-                return result
+        debug_print(f"[DEBUG] Options are {options}, type is {type(options)}")
+        user_prompt += f"Text: {text}\n\n"
+        user_prompt += f"Options: {', '.join(options)}\n\n"
+        user_prompt += (
+            f"Your task is to return the top {top_k} most relevant options from the given list. "
+            "**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
+            "You must choose from the provided options. "
+            f"Return the top {top_k} options as a comma-separated list, ordered by relevance. "
+            "Do not include any additional text or explanations."
+        )
 
-        return None
+        # Request GPT classification
+        response = openai.chat.completions.create(
+            model="gpt-4",  # Replace with your desired model
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"You are a financial classifier for data, {system_prompt}"
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt
+                }
+            ],
+            temperature=0.8,
+            max_tokens=50,  # Increased to allow for multiple options
+            top_p=1
+        )
 
+        # Extract the top k options from the GPT response
+        classification = response.choices[0].message.content.strip().replace(".", "")
+        top_k_options = [opt.strip() for opt in classification.split(",")][:top_k]  # Split and limit to top k
 
-    def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None) -> str:
-                debug_print(f"[DEBUG] query is: {text}")
-                system_prompt = f"""
-                    You are tasked with classifying the following user query into the following three categories:
-
-                    ### 1. **Sector**:
-                    The broad industry or field to which the query talks about (e.g., Finance, Healthcare, Technology).
-                    - **Explanation**: The **Sector** is the broadest classification. For instance, if the query is about healthcare services or innovations in the medical field, it would fall under **Healthcare**. If it's about technology products or software development, it would fall under **Technology**. Please pick the sector that fits best based on the text.
-
-                    ### 2. **Company/Subject**:
-                    The specific company or subject of the query (e.g., Google, Tesla, artificial intelligence, climate change).
-                    - **Explanation**: The **Company/Subject** level focuses on the specific company or subject mentioned. For example, if the query mentions a new technology by **Apple** or discusses **Artificial Intelligence**, the response should reflect that. If the subject doesn’t match the options, suggest a fitting one. You can classify topics like "climate change" under the **Subject** category even if it isn't a company.
-
-                    ### 3. **Event Type**:
-                    The type of event or activity described in the query (e.g., merger, financial report, product launch, acquisition, scientific discovery).
-                    - **Explanation**: The **Event Type** categorizes what the query describes in terms of events or activities. For example, if the query talks about a company merger, it should be classified under **Merger**. If it's about a product release by **Apple**, it should be classified as a **Product Launch**. If no event type matches the options, suggest one based on the query's context.
-                            """
-                
-                
-                user_prompt=""
-                # Building the prompt based on the level
-                if level == "subject":
-                    user_prompt += (
-                        f"you need to decide which subject the following text belongs under the sector '{sector}':\n\n"
-                    )
-                elif level == "event type":
-                    user_prompt += (
-                        f"Based on the following text, decide which event type it belongs to under the sector '{sector}' and subject '{subject}':\n\n"
-                    )
-                else:
-                    user_prompt += (
-                        f"Based on the following text, decide which {level} it belongs to:\n\n"
-                    )
-                debug_print(f"[DEBUG] Options are {options}, type is {type(options)}")
-                user_prompt += f"Text: {text}\n\n"
-                user_prompt += f"Options: {', '.join(options)}\n\n"
-                user_prompt += (
-                    "Your suggestions should be **specific and relevant** to the content. "
-                    "**Do not reply **neither of the options** or **none of them** or anything of the sort! this is not valid answer! You must choose something from the options!. "
-                    "Always provide an answer from the given option.\nThe answer must be only the name of the {level} without any garbage!")
-
-
-
-                # Request GPT classification
-                response = openai.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": f"You are a financial classifier for data , {system_prompt}"
-                        },
-                        {
-                            "role": "user",
-                            "content": user_prompt
-                        }
-                    ],
-                    temperature=0.8,
-                    max_tokens=10,
-                    top_p=1
-                )
-
-                #debug_print(f"[DEBUG] prompt={user_prompt} response={response}")
-
-                classification = response.choices[0].message.content.strip().replace(".", "")
-                #debug_print(f"[DEBUG] GPT classification result: {classification}")
-
-                return classification
+        debug_print(f"[DEBUG] GPT classification result: {top_k_options}")
+        return top_k_options
 
     def summarize_with_gpt(self, text: str) -> str:
         # Request GPT classification
@@ -253,8 +239,22 @@ class ContextExtractorChain(Chain):
         classification = response.choices[0].message.content.strip().replace(".", "")
 
         return classification
-    
 
+
+    def find_node(self, name, current_node=None):
+        """Recursively search for a node in the hierarchy by name."""
+        if current_node is None:
+            current_node = self.hierarchy
+
+        if current_node["name"] == name:
+            return current_node
+
+        for child in current_node.get("children", []):
+            result = self.find_node(name, child)
+            if result:
+                return result
+
+        return None
     def get_all_sectors(self) -> List[str]:
         """Retrieve all sector names from the hierarchy."""
         return [child["name"] for child in self.hierarchy.get("children", [])]
@@ -293,103 +293,77 @@ class ContextExtractorChain(Chain):
             List[dict]: List of relevant data points.
         """
         sectors = self.get_all_sectors()
-        debug_print(f"[DEBUG] Found existing sectors: {sectors}")
-        sector = self.classify_with_gpt(query, sectors, "sector")
-        debug_print(f"[DEBUG] sector => '{sector}'")
+        debug_print(f"[DEBUG] Found sectors: {sectors}")
 
-        subjects = self.get_subjects_under_sector(sector)
-        debug_print(f"[DEBUG] Found existing subjects under sector '{sector}': {subjects}")
-        subject = self.classify_with_gpt(query, subjects, "subject",sector=sector)
-        debug_print(f"[DEBUG] subject => '{subject}'")
+        top_sectors = self.classify_with_gpt(query, sectors, "sector", top_k=top_k)
+        debug_print(f"[DEBUG] Top sectors: {top_sectors}")
 
-        event_types = self.get_event_types_under_subject(sector, subject)
-        debug_print(f"[DEBUG] Found existing event types under subject '{subject}': {event_types}")
-        event_type = self.classify_with_gpt(query, event_types, "event type",sector=sector,subject=subject)
-        debug_print(f"[DEBUG] event_type => '{event_type}'")
+        all_results = []
 
-        doc_collection_name = f"{sector}__{subject}__{event_type}".lower().replace(" ", "_")
-        debug_print(f"[DEBUG] Classified query to collection name: {doc_collection_name}")
+        # Step 2: Iterate over the top-k sectors
+        for sector in top_sectors:
+            debug_print(f"[DEBUG] Exploring sector: {sector}")
 
-        try:
-            # Perform the search with the filter applied
-            debug_print(f"[DEBUG] before search in vector store")
+            # Get the subjects under the sector
+            subjects = self.get_subjects_under_sector(sector)
+            debug_print(f"[DEBUG] Found subjects in sector '{sector}': {subjects}")
 
-            data = self.vector_store.search(
-            query_vector=query_vector,
-            collection_name=self.vector_collection,
-            limit=self.top_k,
-            timeout=360.0,
-            query_filter={
-                "must": [
-                    {
-                        "key": "collection_name",
-                        "match": {
-                            "value": doc_collection_name
-                        }
-                    }
-                ]
-            }
-        )
+            # Classify the query to find relevant subjects in the sector
+            top_subjects = self.classify_with_gpt(query, subjects, "subject", sector=sector, top_k=top_k)
+            debug_print(f"[DEBUG] Top subjects under sector '{sector}': {top_subjects}")
 
-            debug_print(f"[DEBUG] returned data is {data} and type is {type(data)}")
+            # Step 3: Iterate through the top-k subjects under each sector
+            for subject in top_subjects:
+                debug_print(f"[DEBUG] Exploring subject: {subject}")
 
-            # endpoint = f'{os.environ["QDRANT_URL"]}/collections/alpaca_financial_news/points/scroll'
+                # Get event types under this subject
+                event_types = self.get_event_types_under_subject(sector, subject)
+                debug_print(f"[DEBUG] Found event types for subject '{subject}': {event_types}")
 
-            # payload = {
-            #     "limit": 50,
-            #     "filter": {
-            #         "must": [
-            #             {
-            #                 "key": "collection_name",
-            #                 "match": {
-            #                     "any": [f"{doc_collection_name}"]
-            #                 }
-            #             }
-            #         ]
-            #     }
-            # }
+                # Classify the query to find the most relevant event type
+                top_event_types = self.classify_with_gpt(query, event_types, "event type", sector=sector, subject=subject, top_k=top_k)
+                debug_print(f"[DEBUG] Top event types for subject '{subject}': {top_event_types}")
 
-            # headers = {
-            #     "Content-Type": "application/json",
-            #     "Authorization": f"Bearer {os.environ['QDRANT_API_KEY']}"  # Add the Authorization header}
-            # }
+                # Step 4: Iterate through the top-k event types under each subject
+                for event_type in top_event_types:
+                    debug_print(f"[DEBUG] Exploring event type: {event_type}")
 
+                    # Formulate the collection name as a triplet: sector_subject_event_type
+                    doc_collection_name = f"{sector}__{subject}__{event_type}".lower().replace(" ", "_")
+                    debug_print(f"[DEBUG] Collection name: {doc_collection_name}")
 
-            # def parse_qdrant_response(response_data: dict) -> List[PointStruct]:
-            #     """Parse the JSON response from Qdrant into a Python structure of PointStruct objects."""
-                
-            #     points_data = response_data.get("result", {}).get("points", [])
-            #     debug_print(f"[DEBUG] points_data is {points_data}")
-                
-            #     # Using list comprehension to handle missing vector field and create PointStruct objects
-            #     return [
-            #         PointStruct(
-            #             id=point["id"],
-            #             vector=point.get("vector", None),  # Use None if vector is missing
-            #             payload=point["payload"],
-            #             # Add default values for other fields if necessary
-            #         )
-            #         for point in points_data
-            #     ]
-            
+                    # Step 5: Search within the specific collection (sector_subject_event_type)
+                    try:
+                        debug_print(f"[DEBUG] Searching in collection '{doc_collection_name}'...")
+                        results = self.vector_store.search(
+                            query_vector=query_vector,
+                            collection_name=self.vector_collection,
+                            limit=top_k,
+                            timeout=360.0,
+                            query_filter={
+                                "must": [
+                                    {
+                                        "key": "collection_name",
+                                        "match": {
+                                            "value": doc_collection_name
+                                        }
+                                    }
+                                ]
+                            }
+                        )
+                        debug_print(f"[DEBUG] Retrieved {len(results)} results from collection '{doc_collection_name}'.")
+                        all_results.extend(results)
 
-            # {'id': '062d77ca-cd7e-165f-5f6a-f980f185b875', 'payload': {'headline': "EXCLUSIVE: Answering Key Questions About Bitcoin's Future 10 Days Before The Inauguration", 'summary': 'Bitcoins (CRYPTO: BTC) dip from its all-time high of $108,135 on Dec.', 'url': 'https://www.benzinga.com/markets/cryptocurrency/25/01/42908193/exclusive-answering-key-questions-about-bitcoins-future-before-inauguration', 'symbols': ['BTCUSD'], 'author': 'Murtuza Merchant', 'created_at': '2025-01-10T11:23:43+00:00', 'text': '$108,000 The Top? Asked for their opinion on whether the $108,000 price point was the peak for this cycle, experts m Howell states a 1% chance, a sentiment echoed by Bratcher, who stated that there is a 99% chance that this is not the high for the cycle. Beltran admits that $108,000 represents a significant resistance level, but believes higher prices going forward are likely. Plotnikova is very bullish, saying that $200,000 could be surpassed by the end of 2025. While the short-term outlook remains volatile, experts believe that underlying factors support continued growth in the long term. Read Next: Bitcoin Silk Road Sales Would Affect Leverage Traders More Than Holders, Analyst Argues Image: Shutterstock', 'collection_name': 'finance__bitcoin__market_impact_analysis'}}
+                    except Exception as e:
+                        debug_print(f"[ERROR] Search failed for collection '{doc_collection_name}': {e}")
 
-            # response = requests.post(endpoint, headers=headers, data=json.dumps(payload))
-            # response.raise_for_status()  # Raise an error for HTTP codes >= 400
+                debug_print(f"[DEBUG] returned data is {data} and type is {type(data)}")
+                # Step 6: Combine all results and sort them by relevance score
+        debug_print(f"[DEBUG] Combining and sorting all results ({len(all_results)} total)...")
+        sorted_results = sorted(all_results, key=lambda x: x["score"], reverse=True)
 
-            # debug_print(f"[DEBUG] After request {response.json()}")
+        return sorted_results[:top_k]  # Return the top-k documents based on score
 
-            # data = parse_qdrant_response(response.json())
-            
-            # # Process the search results
-            # debug_print(f"[DEBUG] Search results: {data}")
-
-        except Exception as e:
-            debug_print(f"[ERROR] No matches for this query!!!: {e}")
-            exit(1)     
-        
-        return data
 
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         openai.api_key = os.environ["OPENAI_API_KEY"]
