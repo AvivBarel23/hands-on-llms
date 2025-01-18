@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="0c045d3d-8bb5-40e4-819d-38cc2c0fd0c7" name="Changes" comment="p[rinting baseline search" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="feature/one_collection_approach" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="SOFT" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;aviv-barel&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/AvivBarel23/hands-on-llms.git&quot;,
+    &quot;accountId&quot;: &quot;c97d681e-1a11-4d72-9a64-b15980a575f9&quot;
+  }
+}</component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
+  <component name="ProjectId" id="2rJPHxDm2UWIjmY4qmlw4Z653BD" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "feature/testing-baseline",
+    "last_opened_file_path": "/Users/avivba/Desktop/aviv_private/data_science_msc/mlops/hands-on-llms",
+    "settings.editor.selected.configurable": "preferences.lookFeel"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-a8e928d85084-fab4200a9dfa-com.jetbrains.pycharm.ds.sharedIndexes.bundled-DS-243.22562.236" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="rate limit fixing2" />
+    <MESSAGE value="rate limit fixing3" />
+    <MESSAGE value="fixing search and save" />
+    <MESSAGE value="gpt -4o-mini" />
+    <MESSAGE value="fixing model query" />
+    <MESSAGE value="fixing model query2" />
+    <MESSAGE value="fixing model query3" />
+    <MESSAGE value="fixing node id" />
+    <MESSAGE value="fixing vector value" />
+    <MESSAGE value="debug" />
+    <MESSAGE value="debug subjects" />
+    <MESSAGE value="fix search levels" />
+    <MESSAGE value="check collection existence" />
+    <MESSAGE value="change make file, change the time on the run batch" />
+    <MESSAGE value="delete create collection , only one place" />
+    <MESSAGE value="check search" />
+    <MESSAGE value="vector size change [1.0] * 384" />
+    <MESSAGE value="remove vector" />
+    <MESSAGE value="!!!" />
+    <MESSAGE value="indices log" />
+    <MESSAGE value="fixes" />
+    <MESSAGE value="debugging" />
+    <MESSAGE value="debuggi" />
+    <MESSAGE value="fix" />
+    <MESSAGE value="p[rinting baseline search" />
+    <option name="LAST_COMMIT_MESSAGE" value="p[rinting baseline search" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/modules/financial_bot/financial_bot/chains.py</url>
+          <line>289</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/modules/streaming_pipeline/streaming_pipeline/qdrant.py</url>
+          <line>280</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/modules/streaming_pipeline/streaming_pipeline/qdrant.py</url>
+          <line>161</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
