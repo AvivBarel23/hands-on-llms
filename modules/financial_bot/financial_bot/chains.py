@@ -221,13 +221,13 @@ class ContextExtractorChain(Chain):
 
     def summarize_with_gpt(self, text: str) -> str:
         # Request GPT classification
-        limit_tokens=100
+        limit_tokens=300
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
                     "role": "user",
-                    "content": f"Summarize this text no longer than {limit_tokens} tokens: {text}"
+                    "content": f"Summarize this text,explain the context as well, no longer than {limit_tokens} tokens: {text}"
                 }
             ],
             temperature=0.8,
