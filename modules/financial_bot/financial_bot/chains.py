@@ -418,9 +418,10 @@ You are a financial analyst tasked with analyzing financial documents. Your goal
             summary=self.summarize_with_gpt(text)
             debug_print(f"[DEBUG] summary for text with gpt: {text}")
             debug_print(f"[DEBUG] summary with gpt: {summary}")
-            context+=f"{summary}\n"
+            # context+=f"{summary}\n"
+            context+=f"{text}\n"
 
-        debug_print(f"[DEBUG] context with gpt: {context}")
+        debug_print(f"[DEBUG] context with gpt: {text}")
         return {
                 "context": context,
             }
