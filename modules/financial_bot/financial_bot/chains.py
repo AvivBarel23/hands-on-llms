@@ -415,9 +415,9 @@ You are a financial analyst tasked with analyzing financial documents. Your goal
         for match in matches:
             payload = match.payload
             text=payload.get("text", "")
-            summary=self.summarize_with_gpt(text)
+            #summary=self.summarize_with_gpt(text)
             debug_print(f"[DEBUG] summary for text with gpt: {text}")
-            debug_print(f"[DEBUG] summary with gpt: {summary}")
+            #debug_print(f"[DEBUG] summary with gpt: {summary}")
             # context+=f"{summary}\n"
             context+=f"{text}\n"
 
