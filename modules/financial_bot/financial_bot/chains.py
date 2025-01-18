@@ -414,6 +414,8 @@ class ContextExtractorChain(Chain):
 
             # Safely get the 'summary' and 'text' from the payload
             summary = payload.get("summary", "")
+            collection_name = payload.get("collection_name", "")
+
             debug_print(f"[DEBUG] Summary is: {summary}")
 
             if summary and len(summary) > 0:
@@ -421,7 +423,7 @@ class ContextExtractorChain(Chain):
                 debug_print(f"[DEBUG] Adding context: {summary}")
             else:
                 text = payload.get("text", "")
-                summary=self.summarize_with_gpt(text)
+                summary=self.summarize_with_gpt(collection_name+ text)
                 context += summary + "\n"
                 debug_print(f"[DEBUG] summary with gpt: {summary}")
                 debug_print(f"[DEBUG] Adding context: {context}")
