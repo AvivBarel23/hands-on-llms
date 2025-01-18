@@ -133,7 +133,7 @@ class ContextExtractorChain(Chain):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vector_collection = kwargs.get("vector_collection", None)
-
+        self.top_k = kwargs.get("top_k", None)
         # Load existing hierarchy or initialize a new one
         if os.path.exists(self.hierarchy_file):
             with open(self.hierarchy_file, "r") as f:
@@ -150,7 +150,7 @@ class ContextExtractorChain(Chain):
         return ["context"]
 
 
-    def classify_with_gpt(self, text: str, options: List[str], level: str, top_k: int = 1, sector: Optional[str] = None, subject: Optional[str] = None) -> List[str]:
+    def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None) -> List[str]:
         debug_print(f"[DEBUG] query is: {text}")
         system_prompt = f"""
             You are tasked with classifying the following user query into the following three categories:
@@ -172,25 +172,25 @@ class ContextExtractorChain(Chain):
         # Building the prompt based on the level
         if level == "subject":
             user_prompt += (
-                f"you need to return the top {top_k} {level}s the following text belongs under the sector '{sector}':\n\n"
+                f"you need to return the top {self.top_k} {level}s the following text belongs under the sector '{sector}':\n\n"
             )
         elif level == "event type":
             user_prompt += (
-                f"Based on the following text, return the top {top_k} {level}s it belongs to under the sector '{sector}' and subject '{subject}':\n\n"
+                f"Based on the following text, return the top {self.top_k} {level}s it belongs to under the sector '{sector}' and subject '{subject}':\n\n"
             )
         else:
             user_prompt += (
-                f"Based on the following text, return the top {top_k} {level}s it belongs to:\n\n"
+                f"Based on the following text, return the top {self.top_k} {level}s it belongs to:\n\n"
             )
 
         debug_print(f"[DEBUG] Options are {options}, type is {type(options)}")
         user_prompt += f"Text: {text}\n\n"
         user_prompt += f"Options: {', '.join(options)}\n\n"
         user_prompt += (
-            f"Your task is to return the top {top_k} most relevant options from the given list. "
+            f"Your task is to return the top {self.top_k} most relevant options from the given list. "
             "**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
             "You must choose from the provided options. "
-            f"Return the top {top_k} options as a comma-separated list, ordered by relevance. "
+            f"Return the top {self.top_k} options as a comma-separated list, ordered by relevance. "
             "Do not include any additional text or explanations."
         )
 
@@ -214,7 +214,7 @@ class ContextExtractorChain(Chain):
 
         # Extract the top k options from the GPT response
         classification = response.choices[0].message.content.strip().replace(".", "")
-        top_k_options = [opt.strip() for opt in classification.split(",")][:top_k]  # Split and limit to top k
+        top_k_options = [opt.strip() for opt in classification.split(",")][:self.top_k]  # Split and limit to top k
 
         debug_print(f"[DEBUG] user prompt :{user_prompt}, GPT classification result: {top_k_options}")
         return top_k_options
@@ -280,7 +280,7 @@ class ContextExtractorChain(Chain):
         return [child["name"] for child in subject_node.get("children", [])]
 
 
-    def search(self, query: str, query_vector: List[float], top_k):
+    def search(self, query: str, query_vector: List[float]):
         """
         Searches for the most relevant data based on the hierarchical structure with top-k branch exploration.
 
@@ -295,7 +295,7 @@ class ContextExtractorChain(Chain):
         sectors = self.get_all_sectors()
         debug_print(f"[DEBUG] Found sectors: {sectors}")
 
-        top_sectors = self.classify_with_gpt(query, sectors, "sector", top_k=top_k)
+        top_sectors = self.classify_with_gpt(query, sectors, "sector")
         debug_print(f"[DEBUG] Top sectors: {top_sectors}")
 
         all_results = []
@@ -309,7 +309,7 @@ class ContextExtractorChain(Chain):
             debug_print(f"[DEBUG] Found subjects in sector '{sector}': {subjects}")
 
             # Classify the query to find relevant subjects in the sector
-            top_subjects = self.classify_with_gpt(query, subjects, "subject", sector=sector, top_k=top_k)
+            top_subjects = self.classify_with_gpt(query, subjects, "subject", sector=sector)
             debug_print(f"[DEBUG] Top subjects under sector '{sector}': {top_subjects}")
 
             # Step 3: Iterate through the top-k subjects under each sector
@@ -321,7 +321,7 @@ class ContextExtractorChain(Chain):
                 debug_print(f"[DEBUG] Found event types for subject '{subject}': {event_types}")
 
                 # Classify the query to find the most relevant event type
-                top_event_types = self.classify_with_gpt(query, event_types, "event type", sector=sector, subject=subject, top_k=top_k)
+                top_event_types = self.classify_with_gpt(query, event_types, "event type", sector=sector, subject=subject)
                 debug_print(f"[DEBUG] Top event types for subject '{subject}': {top_event_types}")
 
                 # Step 4: Iterate through the top-k event types under each subject
@@ -338,7 +338,7 @@ class ContextExtractorChain(Chain):
                         results = self.vector_store.search(
                             query_vector=query_vector,
                             collection_name=self.vector_collection,
-                            limit=top_k,
+                            limit=self.top_k,
                             timeout=360,
                             query_filter={
                                 "must": [
@@ -368,7 +368,7 @@ class ContextExtractorChain(Chain):
         # Debug print the sorted results
         debug_print(f"[DEBUG] Sorted results: {sorted_results}")
 
-        return sorted_results[:top_k]  # Return the top-k documents based on score
+        return sorted_results[:self.top_k]  # Return the top-k documents based on score
 
 
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
@@ -384,7 +384,7 @@ class ContextExtractorChain(Chain):
 
         # TODO: Using the metadata, use the filter to take into consideration only the news from the last 24 hours
         # (or other time frame).
-        matches = self.search(question_str, embeddings, top_k=self.top_k)
+        matches = self.search(question_str, embeddings)
 
         debug_print(f"[DEBUG]\n" + "\n".join(f"match: {item}" for item in matches))
 
