@@ -389,16 +389,8 @@ class ContextExtractorChain(Chain):
 
         context = ""
         for match in matches:
-            summary = match["summary"]
-            debug_print(f"[DEBUG] Summary is : {str(summary)}")
-            if summary and len(str(summary)) > 0:
-                context += summary + "\n"
-                debug_print(f"[DEBUG] Adding context: {str(summary)}")
-            else:
-                text=match.payload["text"]
-                context += text + "\n"
-
-                debug_print(f"[DEBUG] Adding context: {text}")
+            debug_print(f"[DEBUG] ScoredPoint match: {vars(match)}")
+            context += match.payload["summary"] + "\n"
 
         return {
             "context": context,
