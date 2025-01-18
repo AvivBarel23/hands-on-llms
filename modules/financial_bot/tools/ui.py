@@ -182,6 +182,10 @@ demo = gr.ChatInterface(
             "Do you think advancements in gene therapy are impacting biotech company valuations?",
             "I'm a 31 year old scientist. I'm curious about the potential of biotech investments.",
         ],
+        [
+            "Should I invest in microsoft?",
+            "I'm, 30 years old programmer working for startup company",
+        ],
     ],
     cache_examples=False,
     retry_btn=None,

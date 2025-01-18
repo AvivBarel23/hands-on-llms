@@ -1,7 +1,14 @@
+import os
 import time
 from typing import Any, Dict, List, Optional
+import json
+import inspect
+import datetime
+import requests
+import openai
 
 import qdrant_client
+from qdrant_client.models import PointStruct
 from langchain import chains
 from langchain.callbacks.manager import CallbackManagerForChainRun
 from langchain.chains.base import Chain
@@ -17,6 +24,25 @@ from unstructured.cleaners.core import (
 from financial_bot.embeddings import EmbeddingModelSingleton
 from financial_bot.template import PromptTemplate
 
+INDICES_PATH = os.path.join(os.path.dirname(__file__), "../../streaming_pipeline/streaming_pipeline/hierarchy_indices_db.json")
+LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "debug.log")
+
+def debug_print(msg: str):
+    """
+    Logs debug messages to `debug.log` in this directory,
+    including timestamp, filename, and line number.
+    """
+    # Capture call frame info (who called debug_print)
+    frame_info = inspect.stack()[1]
+    filename = os.path.basename(frame_info.filename)
+    lineno = frame_info.lineno
+
+    # Optional timestamp
+    now_str = datetime.datetime.now().isoformat()
+
+    formatted_msg = f"[{now_str}][{filename}:{lineno}] {msg}"
+    with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
+        f.write(formatted_msg + "\n")
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
     """
@@ -129,6 +155,8 @@ class ContextExtractorChain(Chain):
         context = ""
         for match in matches:
             context += match.payload["summary"] + "\n"
+
+        debug_print(context)
 
         return {
             "context": context,
