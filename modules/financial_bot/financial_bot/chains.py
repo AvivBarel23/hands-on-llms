@@ -293,10 +293,8 @@ class ContextExtractorChain(Chain):
             List[dict]: List of relevant data points.
         """
         sectors = self.get_all_sectors()
-        debug_print(f"[DEBUG] Found sectors: {sectors}")
 
         top_sectors = self.classify_with_gpt(query, sectors, "sector")
-        debug_print(f"[DEBUG] Top sectors: {top_sectors}")
 
         all_results = []
 
@@ -306,11 +304,9 @@ class ContextExtractorChain(Chain):
 
             # Get the subjects under the sector
             subjects = self.get_subjects_under_sector(sector)
-            debug_print(f"[DEBUG] Found subjects in sector '{sector}': {subjects}")
 
             # Classify the query to find relevant subjects in the sector
             top_subjects = self.classify_with_gpt(query, subjects, "subject", sector=sector)
-            debug_print(f"[DEBUG] Top subjects under sector '{sector}': {top_subjects}")
 
             # Step 3: Iterate through the top-k subjects under each sector
             for subject in top_subjects:
@@ -318,11 +314,9 @@ class ContextExtractorChain(Chain):
 
                 # Get event types under this subject
                 event_types = self.get_event_types_under_subject(sector, subject)
-                debug_print(f"[DEBUG] Found event types for subject '{subject}': {event_types}")
 
                 # Classify the query to find the most relevant event type
                 top_event_types = self.classify_with_gpt(query, event_types, "event type", sector=sector, subject=subject)
-                debug_print(f"[DEBUG] Top event types for subject '{subject}': {top_event_types}")
 
                 # Step 4: Iterate through the top-k event types under each subject
                 for event_type in top_event_types:
@@ -389,14 +383,18 @@ class ContextExtractorChain(Chain):
         debug_print(f"[DEBUG]\n" + "\n".join(f"match: {item}" for item in matches))
 
         text=""
+        context=""
         for match in matches:
             payload = match.payload
-            text+=payload.get("text", "")
+            text=payload.get("text", "")
+            summary=self.summarize_with_gpt(text)
+            debug_print(f"[DEBUG] summary for text with gpt: {text}")
+            debug_print(f"[DEBUG] summary with gpt: {summary}")
+            context+=f"{summary}\n"
 
-        summary=self.summarize_with_gpt(text)
-        debug_print(f"[DEBUG] summary with gpt: {summary}")
+        debug_print(f"[DEBUG] context with gpt: {context}")
         return {
-                "context": summary,
+                "context": context,
             }
 
     def clean(self, question: str) -> str:
