@@ -359,7 +359,14 @@ class ContextExtractorChain(Chain):
                 # Step 6: Combine all results and sort them by relevance score
         debug_print(f"[DEBUG] Combining and sorting all results ({len(all_results)} total)...")
         debug_print(f"all results:!!!!!!!!!!!!!!!!!!{all_results}")
-        #sorted_results = sorted(all_results, key=lambda x: x["score"], reverse=True)
+        # Step 6: Combine all results and sort them by relevance score
+        debug_print(f"[DEBUG] Combining and sorting all results ({len(all_results)} total)...")
+
+        # Sort results by score (descending order)
+        sorted_results = sorted(all_results, key=lambda x: x.score, reverse=True)
+
+        # Debug print the sorted results
+        debug_print(f"[DEBUG] Sorted results: {sorted_results}")
 
         return sorted_results[:top_k]  # Return the top-k documents based on score
 
