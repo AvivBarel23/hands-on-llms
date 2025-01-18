@@ -27,7 +27,7 @@ run:
 
 	poetry run python -m tools.bot \
 		--about_me "I am a student and I have some money that I want to invest." \
-		--question "Should I consider investing in stocks from the Tech Sector?" \
+		--question "Should I invest in Jasper Therapeutics?" \
 		--history "[[\"What is your opinion on investing in startup companies?\", \"Startup investments can be very lucrative, but they also come with a high degree of risk. It is important to do your due diligence and research the company thoroughly before investing.\"]]" \
 		--debug False
 
@@ -49,6 +49,12 @@ run_ui_dev:
 	@echo "Running financial_bot UI [Dev Mode]..."
 
 	poetry run gradio tools/ui.py --debug
+
+eval_bot:
+	@echo "Evaluating financial_bot..."
+
+	poetry run python -m tools.bot_eval \
+		--testset_path "../training_pipeline/dataset/testing_data.json"
 
 
 # === Beam ===

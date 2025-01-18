@@ -81,6 +81,12 @@ For debugging & testing, run the bot locally with a predefined question, while m
 make run_dev
 ```
 
+Evaluate the bot locally on the test set split of the training pipeline (requires an OpenAI API key):
+```shell
+make eval_bot
+```
+
+
 ## 3.2. Beam | RESTful API
 `deploy the financial bot as a RESTful API to Beam [optional]` 
 
