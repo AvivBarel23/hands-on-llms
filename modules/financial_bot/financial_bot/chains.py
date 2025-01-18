@@ -155,7 +155,7 @@ class ContextExtractorChain(Chain):
         context = ""
         for match in matches:
             context += match.payload["summary"] + "\n"
-            debug_print(match.payload["summary"])
+            debug_print("summary"+match.payload["summary"])
 
         return {
             "context": context,
