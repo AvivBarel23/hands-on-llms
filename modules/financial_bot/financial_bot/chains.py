@@ -123,7 +123,7 @@ class ContextExtractorChain(Chain):
         The path to the hierarchy json file created in the streaming pipeline.
     """
 
-    top_k: int = 10
+    top_k: int = 1
     embedding_model: EmbeddingModelSingleton
     vector_store: qdrant_client.QdrantClient
     vector_collection: str
