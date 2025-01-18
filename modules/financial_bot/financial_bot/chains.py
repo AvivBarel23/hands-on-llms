@@ -389,6 +389,7 @@ class ContextExtractorChain(Chain):
 
         context = ""
         for match in matches:
+            debug_print("match keys"+str(match.keys()))
             summary = match["summary"]
             debug_print(f"[DEBUG] Summary is : {str(summary)}")
             if summary and len(str(summary)) > 0:
