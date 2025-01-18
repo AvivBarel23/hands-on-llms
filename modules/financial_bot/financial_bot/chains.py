@@ -133,7 +133,7 @@ class ContextExtractorChain(Chain):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vector_collection = kwargs.get("vector_collection", None)
-        self.top_k = 3
+        self.top_k = 2
         # Load existing hierarchy or initialize a new one
         if os.path.exists(self.hierarchy_file):
             with open(self.hierarchy_file, "r") as f:
