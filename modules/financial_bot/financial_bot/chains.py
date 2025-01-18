@@ -291,7 +291,6 @@ class ContextExtractorChain(Chain):
 
         try:
             # Perform the search with the filter applied
-
             debug_print(f"[DEBUG] before search in vector store")
 
             data = self.vector_store.search(
@@ -304,7 +303,7 @@ class ContextExtractorChain(Chain):
                     {
                         "key": "collection_name",
                         "match": {
-                            "value": doc_collection_name  # Replace `specific_value` with your desired value
+                            "value": doc_collection_name
                         }
                     }
                 ]
@@ -385,6 +384,8 @@ class ContextExtractorChain(Chain):
         # TODO: Using the metadata, use the filter to take into consideration only the news from the last 24 hours
         # (or other time frame).
         matches = self.search(question_str, embeddings, top_k=self.top_k)
+
+        debug_print(f"[DEBUG]\n" + "\n".join(f"match: {item}" for item in matches))
 
         context = ""
         for match in matches:
