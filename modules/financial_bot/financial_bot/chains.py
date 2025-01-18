@@ -356,8 +356,6 @@ class ContextExtractorChain(Chain):
 
                     except Exception as e:
                         debug_print(f"[ERROR] Search failed for collection '{doc_collection_name}': {e}")
-
-                debug_print(f"[DEBUG] returned data is {data} and type is {type(data)}")
                 # Step 6: Combine all results and sort them by relevance score
         debug_print(f"[DEBUG] Combining and sorting all results ({len(all_results)} total)...")
         sorted_results = sorted(all_results, key=lambda x: x["score"], reverse=True)
