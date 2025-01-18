@@ -240,7 +240,7 @@ class ContextExtractorChain(Chain):
             messages=[
                 {
                     "role": "user",
-                    "content": f"Summarize this text: {text}"
+                    "content": f"Summarize this text no longer than 3 lines: {text}"
                 }
             ],
             temperature=0.8,
