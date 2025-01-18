@@ -410,20 +410,10 @@ class ContextExtractorChain(Chain):
         context = ""
         text=""
         for match in matches:
-            # Access the `payload` dictionary
-            payload = match.payload  # This is a dictionary as per the debug log
+            payload = match.payload
+            text+=payload.get("text", "")
 
-            # Safely get the 'summary' and 'text' from the payload
-            summary = payload.get("summary", "")
-            collection_name = payload.get("collection_name", "")
-
-            debug_print(f"[DEBUG] Summary is: {summary}")
-
-            if summary and len(summary) > 0:
-                context += summary + "\n"
-                debug_print(f"[DEBUG] Adding context: {summary}")
-
-        summary=self.summarize_with_gpt( text)
+        summary=self.summarize_with_gpt(text)
         debug_print(f"[DEBUG] summary with gpt: {summary}")
         context+=summary+"\n"
         debug_print(f"[DEBUG] context : {context}")
