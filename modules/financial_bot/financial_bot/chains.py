@@ -399,29 +399,21 @@ You are a financial analyst tasked with analyzing financial documents. Your goal
         question_str = inputs[quest_key]
 
         cleaned_question = self.clean(question_str)
-        # TODO: Instead of cutting the question at 'max_input_length', chunk the question in 'max_input_length' chunks,
-        # pass them through the model and average the embeddings.
         cleaned_question = cleaned_question[: self.embedding_model.max_input_length]
         embeddings = self.embedding_model(cleaned_question)
 
-        # TODO: Using the metadata, use the filter to take into consideration only the news from the last 24 hours
-        # (or other time frame).
         matches = self.search(question_str, embeddings)
 
         debug_print(f"[DEBUG]\n" + "\n".join(f"match: {item}" for item in matches))
 
-        text=""
         context=""
         for match in matches:
             payload = match.payload
             text=payload.get("text", "")
-            #summary=self.summarize_with_gpt(text)
-            debug_print(f"[DEBUG] summary for text with gpt: {text}")
-            #debug_print(f"[DEBUG] summary with gpt: {summary}")
-            # context+=f"{summary}\n"
-            context+=f"{text}\n"
+            summary=self.summarize_with_gpt(text)
+            debug_print(f"[DEBUG] summary with gpt: {summary}")
+            context+=f"{summary}\n"
 
-        debug_print(f"[DEBUG] context with gpt: {text}")
         return {
                 "context": context,
             }
