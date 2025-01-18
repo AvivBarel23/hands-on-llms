@@ -232,6 +232,26 @@ class ContextExtractorChain(Chain):
                 #debug_print(f"[DEBUG] GPT classification result: {classification}")
 
                 return classification
+
+    def summarize_with_gpt(self, text: str) -> str:
+        # Request GPT classification
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Summarize this text: {text}"
+                }
+            ],
+            temperature=0.8,
+            max_tokens=10,
+            top_p=1
+        )
+
+
+        classification = response.choices[0].message.content.strip().replace(".", "")
+
+        return classification
     
 
     def get_all_sectors(self) -> List[str]:
@@ -401,8 +421,10 @@ class ContextExtractorChain(Chain):
                 debug_print(f"[DEBUG] Adding context: {summary}")
             else:
                 text = payload.get("text", "")
-                context += text + "\n"
-                debug_print(f"[DEBUG] Adding context: {text}")
+                summary=self.summarize_with_gpt(text)
+                context += summary + "\n"
+                debug_print(f"[DEBUG] summary with gpt: {summary}")
+                debug_print(f"[DEBUG] Adding context: {context}")
         return {
             "context": context,
         }
