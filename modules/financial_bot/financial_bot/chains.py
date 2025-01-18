@@ -244,7 +244,7 @@ class ContextExtractorChain(Chain):
                 }
             ],
             temperature=0.8,
-            max_tokens=10,
+            max_tokens=100,
             top_p=1
         )
 
