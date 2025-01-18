@@ -358,7 +358,8 @@ class ContextExtractorChain(Chain):
                         debug_print(f"[ERROR] Search failed for collection '{doc_collection_name}': {e}")
                 # Step 6: Combine all results and sort them by relevance score
         debug_print(f"[DEBUG] Combining and sorting all results ({len(all_results)} total)...")
-        sorted_results = sorted(all_results, key=lambda x: x["score"], reverse=True)
+        debug_print(f"all results:!!!!!!!!!!!!!!!!!!{all_results}")
+        #sorted_results = sorted(all_results, key=lambda x: x["score"], reverse=True)
 
         return sorted_results[:top_k]  # Return the top-k documents based on score
 
