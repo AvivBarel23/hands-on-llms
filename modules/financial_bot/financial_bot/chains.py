@@ -222,9 +222,37 @@ class ContextExtractorChain(Chain):
     def summarize_with_gpt(self, text: str) -> str:
         # Request GPT classification
         limit_tokens=300
+        system_prompt = f"""
+You are a financial analyst tasked with analyzing financial documents. Your goal is to extract key information and provide a concise summary of the document. Follow these steps:
+
+1. **Identify the Subject**:
+   - What is the main topic or subject of the document? (e.g., earnings report, merger, product launch, regulatory filing)
+
+2. **Identify the Event**:
+   - What specific event or activity is described in the document? (e.g., quarterly earnings release, acquisition announcement, stock split)
+
+3. **Identify the Company**:
+   - Which company or companies are the focus of the document? (e.g., Apple, Tesla, Microsoft)
+
+4. **Write a Summary**:
+   - Provide a concise summary of the document, focusing on the key points and implications. The summary must be no longer than {limit_tokens} tokens.
+
+### Document:
+{text}
+
+### Output Format:
+- **Subject**: [Subject of the document]
+- **Event**: [Event described in the document]
+- **Company**: [Company or companies involved]
+- **Summary**: [Concise summary, no longer than {limit_tokens} tokens]
+"""
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
+                {
+                    "role": "system",
+                    "content": f"You are a financial classifier for data, {system_prompt}"
+                },
                 {
                     "role": "user",
                     "content": f"Summarize this text,explain the context as well, no longer than {limit_tokens} tokens: {text}"
