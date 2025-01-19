@@ -315,6 +315,8 @@ class ContextExtractorChain(Chain):
         sector_node = self.find_node(sector_name)
         if not sector_node or sector_node.get("level") != "sector":
             raise ValueError(f"Sector '{sector_name}' not found.")
+        
+        debug_print(f"[DEBUG] Subjects under sector {sector_node['name']} are {sector_node.get('children', [])}")
 
         subject_node = next(
             (child for child in sector_node.get("children", []) if child["name"] == subject_name), None
