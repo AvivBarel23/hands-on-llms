@@ -240,6 +240,7 @@ class ContextExtractorChain(Chain):
         system_prompt = f"""
             You are a financial analyst tasked with analyzing financial documents. Your goal is to extract key information and provide a concise summary of the document.
             Provide a brief, direct explanation of the following content, focusing on key points and insights, without using phrases that imply summarization.
+
             In particular, don't include sentences like "The document suggests that.." or "The document discusses" or something like this!
             The response should feel like a natural answer to a question rather than a summary of a document. This is very important!
 
@@ -254,6 +255,7 @@ class ContextExtractorChain(Chain):
 
             4. **Write a Summary**:
             - Provide a concise summary of the document, focusing on the key points and implications. The summary must be no longer than {limit_tokens} tokens.
+            - I remind again: The response should feel like a natural answer to a question rather than a summary of a document. This is very important!
             ### Document:
             {text}
 
