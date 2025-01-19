@@ -123,7 +123,7 @@ class ContextExtractorChain(Chain):
         The path to the hierarchy json file created in the streaming pipeline.
     """
     top_k_sectors: int = 1
-    top_k_subjects: int = 2
+    top_k_subjects: int = 3
     top_k: int = 5
     embedding_model: EmbeddingModelSingleton
     vector_store: qdrant_client.QdrantClient
@@ -172,7 +172,7 @@ class ContextExtractorChain(Chain):
         # Building the prompt based on the level
         if level == "subject":
             user_prompt += (
-                f"you need to return at most {top_k_level} {level}s which best match the following text under the sector '{sector}':\n\n"
+                f"you need to return exactly {top_k_level} {level}s which best match the following text under the sector '{sector}':\n\n"
             )
         elif level == "event type":
             user_prompt += (
@@ -388,8 +388,6 @@ class ContextExtractorChain(Chain):
         # Step 6: Combine all results and sort them by relevance score
         debug_print(f"[DEBUG] Combining and sorting all results ({len(all_results)} total)...")
         debug_print(f"all results:!!!!!!!!!!!!!!!!!!{all_results}")
-        # Step 6: Combine all results and sort them by relevance score
-        debug_print(f"[DEBUG] Combining and sorting all results ({len(all_results)} total)...")
 
         # Sort results by score (descending order)
         sorted_results = sorted(all_results, key=lambda x: x.score, reverse=True)
