@@ -216,7 +216,7 @@ class ContextExtractorChain(Chain):
         classification = response.choices[0].message.content.strip().replace(".", "")
         top_k_options = [opt.strip() for opt in classification.split(",")][:self.top_k]  # Split and limit to top k
 
-        debug_print(f"[DEBUG] user prompt :{user_prompt}, GPT classification result: {top_k_options}")
+        #debug_print(f"[DEBUG] user prompt :{user_prompt}, GPT classification result: {top_k_options}")
         return top_k_options
 
     def summarize_with_gpt(self, text: str) -> str:
@@ -303,7 +303,9 @@ class ContextExtractorChain(Chain):
             (child for child in sector_node.get("children", []) if child["name"] == subject_name), None
         )
         if not subject_node or subject_node.get("level") != "subject":
-            raise ValueError(f"Subject {subject_name} not found under sector {sector_name}.")
+            #raise ValueError(f"Subject {subject_name} not found under sector {sector_name}.")
+            debug_print(f"[DEBUG] Somehow got wrong event_type under sector {sector_name} and subject {subject_name}.. skip!")
+            return None
         return [child["name"] for child in subject_node.get("children", [])]
 
 
@@ -342,6 +344,8 @@ class ContextExtractorChain(Chain):
 
                 # Get event types under this subject
                 event_types = self.get_event_types_under_subject(sector, subject)
+                if not event_types:
+                    continue
 
                 # Classify the query to find the most relevant event type
                 top_event_types = self.classify_with_gpt(query, event_types, "event type", sector=sector, subject=subject)
