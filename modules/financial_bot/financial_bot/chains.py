@@ -150,7 +150,7 @@ class ContextExtractorChain(Chain):
         return ["context"]
 
 
-    def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None) -> List[str]:
+    def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None, top_k_level: int = None) -> List[str]:
         debug_print(f"[DEBUG] query is: {text}")
         system_prompt = f"""
             You are tasked with classifying the following user query into the following three categories:
@@ -172,26 +172,26 @@ class ContextExtractorChain(Chain):
         # Building the prompt based on the level
         if level == "subject":
             user_prompt += (
-                f"you need to return at most {self.top_k} {level}s which best match the following text under the sector '{sector}':\n\n"
+                f"you need to return at most {top_k_level} {level}s which best match the following text under the sector '{sector}':\n\n"
             )
         elif level == "event type":
             user_prompt += (
-                f"Based on the following text, return at most {self.top_k} {level}s which best match the following text under the sector '{sector}' and subject '{subject}':\n\n"
+                f"Based on the following text, return at most {top_k_level} {level}s which best match the following text under the sector '{sector}' and subject '{subject}':\n\n"
             )
         else:
             user_prompt += (
-                f"Based on the following text, return at most {self.top_k} {level}s which best match the following text:\n\n"
+                f"Based on the following text, return at most {top_k_level} {level}s which best match the following text:\n\n"
             )
 
         debug_print(f"[DEBUG] Options are {options}")
         user_prompt += f"Text: {text}\n\n"
         user_prompt += f"Options: {', '.join(options)}\n\n"
         user_prompt += (
-            f"Your task is to return at most {self.top_k} most relevant options from the given list. "
-            f"\nIf there are less than {self.top_k} {level}s or if there are less than {self.top_k} relevant options, return only those matching the text!  Do not return unnecessary {level}s! " 
+            f"Your task is to return at most {top_k_level} most relevant options from the given list. "
+            f"\nIf there are less than {top_k_level} {level}s or if there are less than {top_k_level} relevant options, return only those matching the text!  Do not return unnecessary {level}s! " 
             "**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
-            f"You must choose from the provided options! You must not invent options of your own! If you cannot find  {self.top_k} good options, return less options, but only good ones!"
-            f"Return the at most {self.top_k} options as a comma-separated list, ordered by relevance. "
+            f"You must choose from the provided options! You must not invent options of your own! If you cannot find  {top_k_level} good options, return less options, but only good ones!"
+            f"Return the at most {top_k_level} options as a comma-separated list, ordered by relevance. "
             "Do not include any additional text or explanations."
         )
 
@@ -322,7 +322,7 @@ class ContextExtractorChain(Chain):
         """
         sectors = self.get_all_sectors()
 
-        top_sectors = self.classify_with_gpt(query, sectors, "sector")
+        top_sectors = self.classify_with_gpt(query, sectors, "sector", top_k_level=self.top_k_sectors)
         debug_print(f"[DEBUG] top {len(top_sectors)} chosen: {top_sectors}")
 
         all_results = []
@@ -335,7 +335,7 @@ class ContextExtractorChain(Chain):
             subjects = self.get_subjects_under_sector(sector)
 
             # Classify the query to find relevant subjects in the sector
-            top_subjects = self.classify_with_gpt(query, subjects, "subject", sector=sector)
+            top_subjects = self.classify_with_gpt(query, subjects, "subject", sector=sector, top_k_level=self.top_k_subjects)
             debug_print(f"[DEBUG] Exploring sector: {sector}, top {len(top_subjects)} chosen: {top_subjects}")
 
             # Step 3: Iterate through the top-k subjects under each sector
@@ -348,7 +348,7 @@ class ContextExtractorChain(Chain):
                     continue
 
                 # Classify the query to find the most relevant event type
-                top_event_types = self.classify_with_gpt(query, event_types, "event type", sector=sector, subject=subject)
+                top_event_types = self.classify_with_gpt(query, event_types, "event type", sector=sector, subject=subject, top_k_level=self.top_k)
                 debug_print(f"[DEBUG] Exploring sector: {sector} and subject {subject}, top {len(top_event_types)} chosen: {top_event_types}")
 
                 # Step 4: Iterate through the top-k event types under each subject
