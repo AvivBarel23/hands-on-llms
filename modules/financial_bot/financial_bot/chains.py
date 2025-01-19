@@ -196,7 +196,7 @@ class ContextExtractorChain(Chain):
         )
 
         # Request GPT classification
-        response = openai.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",  # Replace with your desired model
             messages=[
                 {
@@ -222,7 +222,7 @@ class ContextExtractorChain(Chain):
 
     def summarize_with_gpt(self, text: str) -> str:
         # Request GPT classification
-        limit_tokens=300
+        limit_tokens=100
         system_prompt = f"""
             You are a financial analyst tasked with analyzing financial documents. Your goal is to extract key information and provide a concise summary of the document. Follow these steps:
 
@@ -246,7 +246,7 @@ class ContextExtractorChain(Chain):
             - **Company**: [Company or companies involved]
             - **Summary**: [Concise summary, no longer than {limit_tokens} tokens]
             """
-        response = openai.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[
                 {
@@ -322,6 +322,7 @@ class ContextExtractorChain(Chain):
         sectors = self.get_all_sectors()
 
         top_sectors = self.classify_with_gpt(query, sectors, "sector")
+        debug_print(f"[DEBUG] top {len(top_sectors)} chosen: {top_sectors}")
 
         all_results = []
 
@@ -334,6 +335,7 @@ class ContextExtractorChain(Chain):
 
             # Classify the query to find relevant subjects in the sector
             top_subjects = self.classify_with_gpt(query, subjects, "subject", sector=sector)
+            debug_print(f"[DEBUG] Exploring sector: {sector}, top {len(top_subjects)} chosen: {top_subjects}")
 
             # Step 3: Iterate through the top-k subjects under each sector
             for subject in top_subjects:
@@ -344,6 +346,7 @@ class ContextExtractorChain(Chain):
 
                 # Classify the query to find the most relevant event type
                 top_event_types = self.classify_with_gpt(query, event_types, "event type", sector=sector, subject=subject)
+                debug_print(f"[DEBUG] Exploring sector: {sector} and subject {subject}, top {len(top_event_types)} chosen: {top_event_types}")
 
                 # Step 4: Iterate through the top-k event types under each subject
                 for event_type in top_event_types:
