@@ -172,7 +172,8 @@ class ContextExtractorChain(Chain):
         # Building the prompt based on the level
         if level == "subject":
             user_prompt += (
-                f"you need to return exactly {top_k_level} {level}s which best match the following text under the sector '{sector}':\n\n"
+                f"Based on the following text, you need to return at most {top_k_level} {level}s which best match the following text under the sector '{sector}':\n\n"
+                f"Please don't be too harsh in classifying, allow more than 1 result if it is close enough, but NEVER allow more than {top_k_level}"
             )
         elif level == "event type":
             user_prompt += (
