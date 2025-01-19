@@ -324,7 +324,7 @@ class ContextExtractorChain(Chain):
             debug_print(f"[DEBUG] Somehow Didn't find subject {subject_name} under sector {sector_name} ... skip!")
             return None
         elif subject_node.get("level") != "subject":
-            debug_print(f"[DEBUG] Somehow got wrong classification as {subject_node.get("level")} for subject {subject_name} under sector {sector_name} ... skip!")
+            debug_print(f"[DEBUG] Somehow got wrong classification as {subject_node.get('level')} for subject {subject_name} under sector {sector_name} ... skip!")
             return None
 
         return [child["name"] for child in subject_node.get("children", [])]
