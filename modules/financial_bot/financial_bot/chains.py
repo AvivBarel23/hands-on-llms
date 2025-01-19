@@ -195,7 +195,7 @@ class ContextExtractorChain(Chain):
         )
 
         # Request GPT classification
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
             model="gpt-4",  # Replace with your desired model
             messages=[
                 {
@@ -245,7 +245,7 @@ class ContextExtractorChain(Chain):
             - **Company**: [Company or companies involved]
             - **Summary**: [Concise summary, no longer than {limit_tokens} tokens]
             """
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
@@ -416,10 +416,14 @@ class ContextExtractorChain(Chain):
         context=""
         for match in matches:
             payload = match.payload
-            text=payload.get("text", "")
-            summary=self.summarize_with_gpt(text)
-            debug_print(f"[DEBUG] summary with gpt: {summary}")
-            context+=f"{summary}\n"
+            if payload["summary"] and len(str(payload["summary"])) > 0:
+                context += payload["summary"] + "\n"
+                debug_print(f'[DEBUG] Added  original summary {payload["summary"]}')
+            else:
+                text=payload.get("text", "")
+                summary=self.summarize_with_gpt(text)
+                debug_print(f"[DEBUG] summary with gpt: {summary}")
+                context+=summary + "\n"
 
         return {
                 "context": context,
