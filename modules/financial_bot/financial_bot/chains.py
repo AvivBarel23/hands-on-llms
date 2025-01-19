@@ -235,8 +235,9 @@ You are a financial analyst tasked with analyzing financial documents. Your goal
    - Which company or companies are the focus of the document? (e.g., Apple, Tesla, Microsoft)
 
 4. **Write a Summary**:
-   - Provide a concise summary of the document, focusing on the key points and implications. The summary must be no longer than {limit_tokens} tokens.
-
+   - If the document is longer than 1 or 2 sentences- Provide a concise summary of the document, focusing on the key points and implications.
+   - Otherwise, the document is short, so please make a little bit longer summary!
+   - In any case, The summary must be no longer than {limit_tokens} tokens!!!
 ### Document:
 {text}
 
@@ -315,7 +316,6 @@ You are a financial analyst tasked with analyzing financial documents. Your goal
         Args:
             query (str): The user's search query.
             query_vector (List[float]): Embedding vector for the query.
-            top_k (int): The number of top branches to explore at each level.
 
         Returns:
             List[dict]: List of relevant data points.
