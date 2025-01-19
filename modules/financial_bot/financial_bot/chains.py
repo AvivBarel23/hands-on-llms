@@ -124,7 +124,7 @@ class ContextExtractorChain(Chain):
     """
     top_k_sectors: int = 1
     top_k_subjects: int = 3
-    top_k: int = 5
+    top_k_events: int = 5
     embedding_model: EmbeddingModelSingleton
     vector_store: qdrant_client.QdrantClient
     vector_collection: str
@@ -193,6 +193,7 @@ class ContextExtractorChain(Chain):
                 "\n**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
                 f"\n\nYou must choose from the provided options!\nNever invent options of your own!\nIf you cannot find  {top_k_level} good options, return at least 1 good option from the options list!"
                 f"\n\nReturn the at most {top_k_level} options as a comma-separated list, ordered by relevance. "
+                "\nI repeat- please DO NOT invent any result that is not inside the options list above"
                 "\nDo not include any additional text or explanations.")
         else:
             user_prompt += (
@@ -201,6 +202,7 @@ class ContextExtractorChain(Chain):
                 "\n**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
                 f"\n\nYou must choose from the provided options!\nNever invent options of your own!\nIf you cannot find {top_k_level} good options, return the entire options list!"
                 f"\n\nReturn the exactly {top_k_level} options as a comma-separated list, ordered by relevance. "
+                "\nI repeat- please DO NOT invent any result that is not inside the options list above"
                 "\nDo not include any additional text or explanations."
             )
             
@@ -360,7 +362,8 @@ class ContextExtractorChain(Chain):
                     continue
 
                 # Classify the query to find the most relevant event type
-                top_event_types = self.classify_with_gpt(query, event_types, "event type", sector=sector, subject=subject, top_k_level=self.top_k)
+                debug_print(f"[DEBUG] top_k_level for event_types is: {self.top_k_events}")
+                top_event_types = self.classify_with_gpt(query, event_types, "event type", sector=sector, subject=subject, top_k_level=self.top_k_events)
                 debug_print(f"[DEBUG] Exploring sector: {sector} and subject {subject}, top {len(top_event_types)} chosen: {top_event_types}")
 
                 # Step 4: Iterate through the top-k event types under each subject
@@ -377,7 +380,7 @@ class ContextExtractorChain(Chain):
                         results = self.vector_store.search(
                             query_vector=query_vector,
                             collection_name=self.vector_collection,
-                            limit=self.top_k,
+                            limit=self.top_k_events,
                             timeout=360,
                             query_filter={
                                 "must": [
@@ -407,7 +410,7 @@ class ContextExtractorChain(Chain):
         # Debug print the sorted results
         debug_print(f"[DEBUG] Sorted results: {sorted_results}")
 
-        return sorted_results[:self.top_k]  # Return the top-k documents based on score
+        return sorted_results[:self.top_k_events]  # Return the top-k documents based on score
 
 
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
