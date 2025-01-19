@@ -133,7 +133,7 @@ class ContextExtractorChain(Chain):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vector_collection = kwargs.get("vector_collection", None)
-        self.top_k = 1
+        self.top_k = 10
         # Load existing hierarchy or initialize a new one
         if os.path.exists(self.hierarchy_file):
             with open(self.hierarchy_file, "r") as f:
@@ -188,9 +188,10 @@ class ContextExtractorChain(Chain):
         user_prompt += f"Options: {', '.join(options)}\n\n"
         user_prompt += (
             f"Your task is to return the top {self.top_k} most relevant options from the given list. "
+            f"\nIf there are less than {self.top_k} {level}s, return only those matching the text!  Do not return unnecessary {level}s " 
             "**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
             "You must choose from the provided options. "
-            f"Return the top {self.top_k} options as a comma-separated list, ordered by relevance. "
+            f"Return the top {self.top_k} options (or less if needed , as mentioned above) as a comma-separated list, ordered by relevance. "
             "Do not include any additional text or explanations."
         )
 
@@ -223,30 +224,28 @@ class ContextExtractorChain(Chain):
         # Request GPT classification
         limit_tokens=300
         system_prompt = f"""
-You are a financial analyst tasked with analyzing financial documents. Your goal is to extract key information and provide a concise summary of the document. Follow these steps:
+            You are a financial analyst tasked with analyzing financial documents. Your goal is to extract key information and provide a concise summary of the document. Follow these steps:
 
-1. **Identify the Subject**:
-   - What is the main topic or subject of the document? (e.g., earnings report, merger, product launch, regulatory filing)
+            1. **Identify the Subject**:
+            - What is the main topic or subject of the document? (e.g., earnings report, merger, product launch, regulatory filing)
 
-2. **Identify the Event**:
-   - What specific event or activity is described in the document? (e.g., quarterly earnings release, acquisition announcement, stock split)
+            2. **Identify the Event**:
+            - What specific event or activity is described in the document? (e.g., quarterly earnings release, acquisition announcement, stock split)
 
-3. **Identify the Company**:
-   - Which company or companies are the focus of the document? (e.g., Apple, Tesla, Microsoft)
+            3. **Identify the Company**:
+            - Which company or companies are the focus of the document? (e.g., Apple, Tesla, Microsoft)
 
-4. **Write a Summary**:
-   - If the document is longer than 1 or 2 sentences- Provide a concise summary of the document, focusing on the key points and implications.
-   - Otherwise, the document is short, so please make a little bit longer summary!
-   - In any case, The summary must be no longer than {limit_tokens} tokens!!!
-### Document:
-{text}
+            4. **Write a Summary**:
+            - Provide a concise summary of the document, focusing on the key points and implications. The summary must be no longer than {limit_tokens} tokens.
+            ### Document:
+            {text}
 
-### Output Format:
-- **Subject**: [Subject of the document]
-- **Event**: [Event described in the document]
-- **Company**: [Company or companies involved]
-- **Summary**: [Concise summary, no longer than {limit_tokens} tokens]
-"""
+            ### Output Format:
+            - **Subject**: [Subject of the document]
+            - **Event**: [Event described in the document]
+            - **Company**: [Company or companies involved]
+            - **Summary**: [Concise summary, no longer than {limit_tokens} tokens]
+            """
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -378,7 +377,9 @@ You are a financial analyst tasked with analyzing financial documents. Your goal
 
                     except Exception as e:
                         debug_print(f"[ERROR] Search failed for collection '{doc_collection_name}': {e}")
-                # Step 6: Combine all results and sort them by relevance score
+
+        
+        # Step 6: Combine all results and sort them by relevance score
         debug_print(f"[DEBUG] Combining and sorting all results ({len(all_results)} total)...")
         debug_print(f"all results:!!!!!!!!!!!!!!!!!!{all_results}")
         # Step 6: Combine all results and sort them by relevance score
