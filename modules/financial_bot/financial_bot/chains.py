@@ -221,9 +221,11 @@ class ContextExtractorChain(Chain):
 
     def summarize_with_gpt(self, text: str) -> str:
         # Request GPT classification
-        limit_tokens=100
+        limit_tokens=150
         system_prompt = f"""
-            You are a financial analyst tasked with analyzing financial documents. Your goal is to extract key information and provide a concise summary of the document. Follow these steps:
+            You are a financial analyst tasked with analyzing financial documents. Your goal is to extract key information and provide a concise summary of the document.
+            You must answer with complete and comprehensive sentences.
+            Follow these steps:
 
             1. **Identify the Subject**:
             - What is the main topic or subject of the document? (e.g., earnings report, merger, product launch, regulatory filing)
@@ -240,10 +242,7 @@ class ContextExtractorChain(Chain):
             {text}
 
             ### Output Format:
-            - **Subject**: [Subject of the document]
-            - **Event**: [Event described in the document]
-            - **Company**: [Company or companies involved]
-            - **Summary**: [Concise summary, no longer than {limit_tokens} tokens]
+            You must return only the generated summary without any other explanation or information!
             """
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
@@ -254,7 +253,7 @@ class ContextExtractorChain(Chain):
                 },
                 {
                     "role": "user",
-                    "content": f"Summarize this text,explain the context as well, no longer than {limit_tokens} tokens: {text}"
+                    "content": f"Summarize this text, no longer than {limit_tokens} tokens: {text}"
                 }
             ],
             temperature=0.8,
@@ -418,7 +417,7 @@ class ContextExtractorChain(Chain):
             payload = match.payload
             if payload["summary"] and len(str(payload["summary"])) > 0:
                 context += payload["summary"] + "\n"
-                debug_print(f'[DEBUG] Added  original summary {payload["summary"]}')
+                debug_print(f'[DEBUG] Added original summary {payload["summary"]}')
             else:
                 text=payload.get("text", "")
                 summary=self.summarize_with_gpt(text)
