@@ -319,10 +319,14 @@ class ContextExtractorChain(Chain):
         subject_node = next(
             (child for child in sector_node.get("children", []) if child["name"] == subject_name), None
         )
-        if not subject_node or subject_node.get("level") != "subject":
+        if not subject_node:
             #raise ValueError(f"Subject {subject_name} not found under sector {sector_name}.")
-            debug_print(f"[DEBUG] Somehow got wrong subject under sector {sector_name} ... skip!")
+            debug_print(f"[DEBUG] Somehow Didn't find subject {subject_name} under sector {sector_name} ... skip!")
             return None
+        elif subject_node.get("level") != "subject":
+            debug_print(f"[DEBUG] Somehow got wrong classification as {subject_node.get("level")} for subject {subject_name} under sector {sector_name} ... skip!")
+            return None
+
         return [child["name"] for child in subject_node.get("children", [])]
 
 
