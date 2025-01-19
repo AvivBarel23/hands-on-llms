@@ -191,7 +191,7 @@ class ContextExtractorChain(Chain):
                 f"Your task is to return at most {top_k_level} most relevant options from the given list. "
                 f"\nIf there are less than {top_k_level} {level}s in the options list, return only those matching the text, and NEVER invent non existent options! " 
                 "\n**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
-                f"\n\nYou must choose from the provided options! Never invent options of your own! If you cannot find  {top_k_level} good options, return at least 1 good option from the options list!"
+                f"\n\nYou must choose from the provided options!\nNever invent options of your own!\nIf you cannot find  {top_k_level} good options, return at least 1 good option from the options list!"
                 f"\n\nReturn the at most {top_k_level} options as a comma-separated list, ordered by relevance. "
                 "\nDo not include any additional text or explanations.")
         else:
@@ -199,7 +199,7 @@ class ContextExtractorChain(Chain):
                 f"Your task is to return exactly {top_k_level} most relevant options from the given list. "
                 f"\nIf there are less than {top_k_level} {level}s in the options list, return everything in the options list, but NEVER invent non existent options! " 
                 "\n**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
-                f"\n\nYou must choose from the provided options! Never invent options of your own! If you cannot find {top_k_level} good options, return the entire options list!"
+                f"\n\nYou must choose from the provided options!\nNever invent options of your own!\nIf you cannot find {top_k_level} good options, return the entire options list!"
                 f"\n\nReturn the exactly {top_k_level} options as a comma-separated list, ordered by relevance. "
                 "\nDo not include any additional text or explanations."
             )
@@ -225,7 +225,7 @@ class ContextExtractorChain(Chain):
 
         # Extract the top k options from the GPT response
         classification = response.choices[0].message.content.strip().replace(".", "")
-        debug_print(f"[DEBUG] GPT Classification is: {classification}")
+        debug_print(f"[DEBUG] GPT Classification is: {classification} and number of found {level}s is {len(level)}")
         top_k_options = [opt.strip() for opt in classification.split(",")][:self.top_k]  # Split and limit to top k
 
         debug_print(f"[DEBUG] user prompt :{user_prompt}, GPT classification result: {top_k_options}")
@@ -236,6 +236,8 @@ class ContextExtractorChain(Chain):
         limit_tokens=150
         system_prompt = f"""
             You are a financial analyst tasked with analyzing financial documents. Your goal is to extract key information and provide a concise summary of the document.
+            This summary will be coped as is as a part of LLM's response, so do nit make it look like a summary by saying "This document shows" or something like this.
+            Instead, make it sound like something that can be taken as-is and inserted into an LLM's response without knowing this is a summary of a document.
             You must answer with complete and comprehensive sentences.
             Follow these steps:
 
