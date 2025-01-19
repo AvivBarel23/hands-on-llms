@@ -237,10 +237,8 @@ class ContextExtractorChain(Chain):
         limit_tokens=150
         system_prompt = f"""
             You are a financial analyst tasked with analyzing financial documents. Your goal is to extract key information and provide a concise summary of the document.
-            This summary will be coped as is as a part of LLM's response, so do nit make it look like a summary by saying "This document shows" or something like this.
-            Instead, make it sound like something that can be taken as-is and inserted into an LLM's response without knowing this is a summary of a document.
-            You must answer with complete and comprehensive sentences.
-            Follow these steps:
+            Provide a brief, direct explanation of the following content, focusing on key points and insights, without using phrases that imply summarization.
+            The response should feel like a natural answer to a question rather than a summary of a document.
 
             1. **Identify the Subject**:
             - What is the main topic or subject of the document? (e.g., earnings report, merger, product launch, regulatory filing)

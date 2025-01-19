@@ -189,6 +189,18 @@ demo = gr.ChatInterface(
         [
             "Where should I invest my savings for the long run?",
             "I am a 50 years old man, wanting to invest my money in a smart way.",
+        ],
+        [
+            "Tell me about Bitcoin sentiment analysis",
+            "I am a 23 years old man, wanting to invest my money in crypto.",
+        ],
+        [
+            "Should I invest in Bitcoin?",
+            "I am a 23 years old man, wanting to invest my money in crypto.",
+        ]
+        [
+            "Should I invest in biontect stocks?",
+            "I'm a 31 year old scientist. I'm curious about the potential of biotech investments.",
         ]
         
     ],
