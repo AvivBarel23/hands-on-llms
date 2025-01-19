@@ -123,7 +123,6 @@ class ContextExtractorChain(Chain):
         The path to the hierarchy json file created in the streaming pipeline.
     """
 
-    top_k: int = 1
     embedding_model: EmbeddingModelSingleton
     vector_store: qdrant_client.QdrantClient
     vector_collection: str
@@ -133,7 +132,7 @@ class ContextExtractorChain(Chain):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vector_collection = kwargs.get("vector_collection", None)
-        self.top_k = 10
+        self.top_k = 5
         # Load existing hierarchy or initialize a new one
         if os.path.exists(self.hierarchy_file):
             with open(self.hierarchy_file, "r") as f:
@@ -172,26 +171,26 @@ class ContextExtractorChain(Chain):
         # Building the prompt based on the level
         if level == "subject":
             user_prompt += (
-                f"you need to return the top {self.top_k} {level}s the following text belongs under the sector '{sector}':\n\n"
+                f"you need to return at most {self.top_k} {level}s which best match the following text under the sector '{sector}':\n\n"
             )
         elif level == "event type":
             user_prompt += (
-                f"Based on the following text, return the top {self.top_k} {level}s it belongs to under the sector '{sector}' and subject '{subject}':\n\n"
+                f"Based on the following text, return at most {self.top_k} {level}s which best match the following text under the sector '{sector}' and subject '{subject}':\n\n"
             )
         else:
             user_prompt += (
-                f"Based on the following text, return the top {self.top_k} {level}s it belongs to:\n\n"
+                f"Based on the following text, return at most {self.top_k} {level}s which best match the following text:\n\n"
             )
 
-        debug_print(f"[DEBUG] Options are {options}, type is {type(options)}")
+        debug_print(f"[DEBUG] Options are {options}")
         user_prompt += f"Text: {text}\n\n"
         user_prompt += f"Options: {', '.join(options)}\n\n"
         user_prompt += (
-            f"Your task is to return the top {self.top_k} most relevant options from the given list. "
-            f"\nIf there are less than {self.top_k} {level}s, return only those matching the text!  Do not return unnecessary {level}s " 
+            f"Your task is to return at most {self.top_k} most relevant options from the given list. "
+            f"\nIf there are less than {self.top_k} {level}s or if there are less than {self.top_k} relevant options, return only those matching the text!  Do not return unnecessary {level}s! " 
             "**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
-            "You must choose from the provided options. "
-            f"Return the top {self.top_k} options (or less if needed , as mentioned above) as a comma-separated list, ordered by relevance. "
+            f"You must choose from the provided options! You must not invent options of your own! If you cannot find  {self.top_k} good options, return less options, but only good ones!"
+            f"Return the at most {self.top_k} options as a comma-separated list, ordered by relevance. "
             "Do not include any additional text or explanations."
         )
 
