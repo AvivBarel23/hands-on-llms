@@ -225,8 +225,9 @@ class ContextExtractorChain(Chain):
 
         # Extract the top k options from the GPT response
         classification = response.choices[0].message.content.strip().replace(".", "")
-        debug_print(f"[DEBUG] GPT Classification is: {classification} and number of found {level}s is {len(level)}")
-        top_k_options = [opt.strip() for opt in classification.split(",")][:self.top_k]  # Split and limit to top k
+        debug_print(f"[DEBUG] GPT Classification is: {classification} and after splitting it's {classification.split(",")} and number of found {level}s is {len(classification.split(","))}")
+        
+        top_k_options = [opt.strip() for opt in classification.split(",")][:top_k_options]  # Split and limit to top k
 
         debug_print(f"[DEBUG] user prompt :{user_prompt}, GPT classification result: {top_k_options}")
         return top_k_options
