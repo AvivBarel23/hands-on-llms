@@ -220,7 +220,7 @@ class ContextExtractorChain(Chain):
                     "content": user_prompt
                 }
             ],
-            temperature=0.8,
+            temperature=0.2,
             max_tokens=50,  # Increased to allow for multiple options
             top_p=1
         )
