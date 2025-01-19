@@ -423,16 +423,15 @@ class ContextExtractorChain(Chain):
         embeddings = self.embedding_model(cleaned_question)
 
         matches = self.search(question_str, embeddings)
+        debug_print(f"[DEBUG]\n" + "\n".join(f"match: {item}" for item in matches))
 
         if len(matches) == 0:
             debug_print(f"[BASELINE] Defaulting to baseline method")
             matches = self.vector_store.search(
             query_vector=embeddings,
-            k=self.top_k,
+            k=self.top_k_events,
             collection_name=self.vector_collection,
         )
-
-        debug_print(f"[DEBUG]\n" + "\n".join(f"match: {item}" for item in matches))
 
         context=""
         for match in matches:
