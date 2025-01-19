@@ -172,29 +172,38 @@ class ContextExtractorChain(Chain):
         # Building the prompt based on the level
         if level == "subject":
             user_prompt += (
-                f"Based on the following text, you need to return at most {top_k_level} {level}s which best match the following text under the sector '{sector}':\n\n"
-                f"Please don't be too harsh in classifying, allow more than 1 result if it is close enough, but NEVER allow more than {top_k_level}"
+                f"Based on the following text, and according to the following options list, you need to return exactly {top_k_level} {level}s which best match the following text under the sector '{sector}':\n\n"
             )
         elif level == "event type":
             user_prompt += (
-                f"Based on the following text, return at most {top_k_level} {level}s which best match the following text under the sector '{sector}' and subject '{subject}':\n\n"
+                f"Based on the following text, and according to the following options list, return at most {top_k_level} {level}s which best match the following text under the sector '{sector}' and subject '{subject}':\n\n"
             )
         else:
             user_prompt += (
-                f"Based on the following text, return at most {top_k_level} {level}s which best match the following text:\n\n"
+                f"Based on the following text, and according to the following options list, return exactly {top_k_level} {level} which best match the following text:\n\n"
             )
 
         debug_print(f"[DEBUG] Options are {options}")
         user_prompt += f"Text: {text}\n\n"
         user_prompt += f"Options: {', '.join(options)}\n\n"
-        user_prompt += (
-            f"Your task is to return at most {top_k_level} most relevant options from the given list. "
-            f"\nIf there are less than {top_k_level} {level}s or if there are less than {top_k_level} relevant options, return only those matching the text!  Do not return unnecessary {level}s! " 
-            "**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
-            f"You must choose from the provided options! You must not invent options of your own! If you cannot find  {top_k_level} good options, return less options, but only good ones!"
-            f"Return the at most {top_k_level} options as a comma-separated list, ordered by relevance. "
-            "Do not include any additional text or explanations."
-        )
+        if level == "event type":
+            user_prompt += (
+                f"Your task is to return at most {top_k_level} most relevant options from the given list. "
+                f"\nIf there are less than {top_k_level} {level}s in the options list, return only those matching the text, and NEVER invent non existent options! " 
+                "**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
+                f"You must choose from the provided options! Never invent options of your own! If you cannot find  {top_k_level} good options, return at least 1 good option from the options list!"
+                f"Return the at most {top_k_level} options as a comma-separated list, ordered by relevance. "
+                "Do not include any additional text or explanations.")
+        else:
+            user_prompt += (
+                f"Your task is to return exactly {top_k_level} most relevant options from the given list. "
+                f"\nIf there are less than {top_k_level} {level}s in the options list, return only those matching the text, and NEVER invent non existent options! " 
+                "**Do not reply with 'neither of the options' or 'none of them' or anything of the sort! This is not a valid answer! "
+                f"You must choose from the provided options! Never invent options of your own! If you cannot find  {top_k_level} good options, return at least 1 good option from the options list!"
+                f"Return the exactly {top_k_level} options as a comma-separated list, ordered by relevance. "
+                "Do not include any additional text or explanations."
+            )
+            
 
         # Request GPT classification
         response = openai.chat.completions.create(
@@ -305,7 +314,7 @@ class ContextExtractorChain(Chain):
         )
         if not subject_node or subject_node.get("level") != "subject":
             #raise ValueError(f"Subject {subject_name} not found under sector {sector_name}.")
-            debug_print(f"[DEBUG] Somehow got wrong event_type under sector {sector_name} and subject {subject_name}.. skip!")
+            debug_print(f"[DEBUG] Somehow got wrong subject under sector {sector_name} ... skip!")
             return None
         return [child["name"] for child in subject_node.get("children", [])]
 
@@ -337,7 +346,7 @@ class ContextExtractorChain(Chain):
 
             # Classify the query to find relevant subjects in the sector
             top_subjects = self.classify_with_gpt(query, subjects, "subject", sector=sector, top_k_level=self.top_k_subjects)
-            debug_print(f"[DEBUG] Exploring sector: {sector}, top {len(top_subjects)} chosen: {top_subjects}")
+            debug_print(f"[DEBUG] Exploring sector: {sector}, top {len(top_subjects)} subjects chosen: {top_subjects}")
 
             # Step 3: Iterate through the top-k subjects under each sector
             for subject in top_subjects:
