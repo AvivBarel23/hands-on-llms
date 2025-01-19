@@ -17,6 +17,24 @@ from unstructured.cleaners.core import (
 from financial_bot.embeddings import EmbeddingModelSingleton
 from financial_bot.template import PromptTemplate
 
+LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "debug.log")
+
+def debug_print(msg: str):
+    """
+    Logs debug messages to `debug.log` in this directory,
+    including timestamp, filename, and line number.
+    """
+    # Capture call frame info (who called debug_print)
+    frame_info = inspect.stack()[1]
+    filename = os.path.basename(frame_info.filename)
+    lineno = frame_info.lineno
+
+    # Optional timestamp
+    now_str = datetime.datetime.now().isoformat()
+
+    formatted_msg = f"[{now_str}][{filename}:{lineno}] {msg}"
+    with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
+        f.write(formatted_msg + "\n")
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
     """
@@ -126,8 +144,11 @@ class ContextExtractorChain(Chain):
             collection_name=self.vector_collection,
         )
 
+        debug_print(f"[DEBUG]\n" + f"Number of matches: {len(matches)}" + "\n".join(f"match: {item}" for item in matches))
+
         context = ""
         for match in matches:
+            debug_print(f"[DEBUG] Adding {match.payload["summary"]} to context!!")
             context += match.payload["summary"] + "\n"
 
         return {
