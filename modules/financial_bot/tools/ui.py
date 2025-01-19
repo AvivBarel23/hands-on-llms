@@ -197,7 +197,7 @@ demo = gr.ChatInterface(
         [
             "Should I invest in Bitcoin?",
             "I am a 23 years old man, wanting to invest my money in crypto.",
-        ]
+        ],
         [
             "Should I invest in biontect stocks?",
             "I'm a 31 year old scientist. I'm curious about the potential of biotech investments.",
