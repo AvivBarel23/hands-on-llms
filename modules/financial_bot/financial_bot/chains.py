@@ -151,7 +151,6 @@ class ContextExtractorChain(Chain):
 
 
     def classify_with_gpt(self, text: str, options: List[str], level: str, sector: Optional[str] = None, subject: Optional[str] = None, top_k_level: int = None) -> List[str]:
-        debug_print(f"[DEBUG] query is: {text}")
         system_prompt = f"""
             You are tasked with classifying the following user query into the following three categories:
     
@@ -183,7 +182,6 @@ class ContextExtractorChain(Chain):
                 f"Based on the following text, and according to the following options list, return exactly {top_k_level} {level} which best match the following text:\n\n"
             )
 
-        #debug_print(f"[DEBUG] Options are {options}")
         user_prompt += f"Text: {text}\n\n"
         user_prompt += f"Options: {', '.join(options)}\n\n"
         if level == "event type":
@@ -227,11 +225,9 @@ class ContextExtractorChain(Chain):
 
         # Extract the top k options from the GPT response
         classification = response.choices[0].message.content.strip().replace(".", "")
-        debug_print(f"[DEBUG] GPT Classification is: {classification} and after splitting it's {classification.split(',')} and number of found {level}s is {len(classification.split(','))}")
-        
+
         top_k_options = [opt.strip() for opt in classification.split(",")][:top_k_level]  # Split and limit to top k
 
-        debug_print(f"[DEBUG] user prompt :{user_prompt}, GPT classification result: {top_k_options}")
         return top_k_options
 
     def summarize_with_gpt(self, text: str) -> str:
@@ -344,24 +340,20 @@ class ContextExtractorChain(Chain):
         sectors = self.get_all_sectors()
 
         top_sectors = self.classify_with_gpt(query, sectors, "sector", top_k_level=self.top_k_sectors)
-        debug_print(f"[DEBUG] top {len(top_sectors)} chosen: {top_sectors}")
 
         all_results = []
 
         # Step 2: Iterate over the top-k sectors
         for sector in top_sectors:
-            debug_print(f"[DEBUG] Exploring sector: {sector}")
 
             # Get the subjects under the sector
             subjects = self.get_subjects_under_sector(sector)
 
             # Classify the query to find relevant subjects in the sector
             top_subjects = self.classify_with_gpt(query, subjects, "subject", sector=sector, top_k_level=self.top_k_subjects)
-            debug_print(f"[DEBUG] Exploring sector: {sector}, top {len(top_subjects)} subjects chosen: {top_subjects}")
 
             # Step 3: Iterate through the top-k subjects under each sector
             for subject in top_subjects:
-                debug_print(f"[DEBUG] Exploring subject: {subject}")
 
                 # Get event types under this subject
                 event_types = self.get_event_types_under_subject(sector, subject)
@@ -369,21 +361,16 @@ class ContextExtractorChain(Chain):
                     continue
 
                 # Classify the query to find the most relevant event type
-                debug_print(f"[DEBUG] top_k_level for event_types is: {self.top_k_events}")
                 top_event_types = self.classify_with_gpt(query, event_types, "event type", sector=sector, subject=subject, top_k_level=self.top_k_events)
-                debug_print(f"[DEBUG] Exploring sector: {sector} and subject {subject}, top {len(top_event_types)} chosen: {top_event_types}")
 
                 # Step 4: Iterate through the top-k event types under each subject
                 for event_type in top_event_types:
-                    debug_print(f"[DEBUG] Exploring event type: {event_type}")
 
                     # Formulate the collection name as a triplet: sector_subject_event_type
                     doc_collection_name = f"{sector}__{subject}__{event_type}".lower().replace(" ", "_")
-                    debug_print(f"[DEBUG] Collection name: {doc_collection_name}")
 
                     # Step 5: Search within the specific collection (sector_subject_event_type)
                     try:
-                        debug_print(f"[DEBUG] Searching in collection '{doc_collection_name}'...")
                         results = self.vector_store.search(
                             query_vector=query_vector,
                             collection_name=self.vector_collection,
@@ -400,7 +387,6 @@ class ContextExtractorChain(Chain):
                                 ]
                             }
                         )
-                        debug_print(f"[DEBUG] Retrieved {len(results)} results from collection '{doc_collection_name}'.")
                         all_results.extend(results)
 
                     except Exception as e:
@@ -408,14 +394,11 @@ class ContextExtractorChain(Chain):
 
         
         # Step 6: Combine all results and sort them by relevance score
-        debug_print(f"[DEBUG] Combining and sorting all results ({len(all_results)} total)...")
-        debug_print(f"all results:!!!!!!!!!!!!!!!!!!{all_results}")
+
 
         # Sort results by score (descending order)
         sorted_results = sorted(all_results, key=lambda x: x.score, reverse=True)
 
-        # Debug print the sorted results
-        debug_print(f"[DEBUG] Sorted results: {sorted_results}")
 
         return sorted_results[:self.top_k_events]  # Return the top-k documents based on score
 
@@ -430,10 +413,8 @@ class ContextExtractorChain(Chain):
         embeddings = self.embedding_model(cleaned_question)
 
         matches = self.search(question_str, embeddings)
-        debug_print(f"[DEBUG]\n" + "\n".join(f"match: {item}" for item in matches))
 
         if len(matches) == 0:
-            debug_print(f"[BASELINE] Defaulting to baseline method")
             matches = self.vector_store.search(
             query_vector=embeddings,
             k=self.top_k_events,
@@ -445,11 +426,9 @@ class ContextExtractorChain(Chain):
             payload = match.payload
             if payload["summary"] and len(str(payload["summary"])) > 0:
                 context += payload["summary"] + "\n"
-                debug_print(f'[DEBUG] Added original summary {payload["summary"]}')
             else:
                 text=payload.get("text", "")
                 summary=self.summarize_with_gpt(text)
-                debug_print(f"[DEBUG] summary with gpt: {summary}")
                 context+=summary + "\n"
 
         return {
