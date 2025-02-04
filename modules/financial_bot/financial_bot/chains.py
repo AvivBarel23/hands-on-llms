@@ -206,7 +206,7 @@ class ContextExtractorChain(Chain):
             
 
         # Request GPT classification
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
             model="gpt-4",  # Replace with your desired model
             messages=[
                 {
@@ -258,7 +258,7 @@ class ContextExtractorChain(Chain):
             ### Output Format:
             You must return only the generated summary without any other explanation or information!
             """
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {

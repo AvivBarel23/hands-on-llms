@@ -198,7 +198,7 @@ class HierarchicalDataManager:
 
 
                 # Request GPT classification
-                response = openai.ChatCompletion.create(
+                response = openai.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
                         {
