@@ -4,6 +4,7 @@ import inspect
 import datetime
 
 import openai
+from openai.error import RateLimitError
 import time
 from typing import List, Optional
 from bytewax.outputs import DynamicOutput, StatelessSink
@@ -198,27 +199,45 @@ class HierarchicalDataManager:
 
 
                 # Request GPT classification
-                response = openai.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": f"You are a financial classifier for data , {system_prompt}"
-                        },
-                        {
-                            "role": "user",
-                            "content": user_prompt
-                        }
-                    ],
-                    temperature=0.8,
-                    max_tokens=10,
-                    top_p=1
-                )
+                attempt = 0
+                max_attempts = 5  # Avoid infinite loops; adjust as needed
+
+                while attempt < max_attempts:
+                    try:
+                        response = openai.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": f"You are a financial classifier for data , {system_prompt}"
+                                },
+                                {
+                                    "role": "user",
+                                    "content": user_prompt
+                                }
+                            ],
+                            temperature=0.8,
+                            max_tokens=10,
+                            top_p=1
+                        )
 
 
-                classification = response.choices[0].message.content.strip().replace(".", "")
+                        classification = response.choices[0].message.content.strip().replace(".", "")
+                        return classification
+                    except RateLimitError as e:
+                        attempt += 1
+                        # Exponential backoff (can also do a simple fixed wait)
+                        sleep_time = min(2 ** attempt, 60)  # Don't wait more than 60 seconds
+                        debug_print(
+                            f"Rate limit error ({e}). Retrying in {sleep_time} seconds... [Attempt {attempt}/{max_attempts}]")
+                        time.sleep(sleep_time)
 
-                return classification
+                    except Exception as e:
+                        # Catch-all for other exceptions; log or re-raise as needed
+                        print(f"Unexpected error: {e}")
+                        raise e
+
+
 
 
     def save_data(self, document):
