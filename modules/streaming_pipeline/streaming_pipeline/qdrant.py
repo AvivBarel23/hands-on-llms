@@ -55,7 +55,6 @@ def build_qdrant_client(url: Optional[str] = None, api_key: Optional[str] = None
     Returns:
         QdrantClient: A QdrantClient object connected to the specified Qdrant server.
     """
-    debug_print("[DEBUG] build_qdrant_client START")
 
     if url is None:
         try:
@@ -74,9 +73,7 @@ def build_qdrant_client(url: Optional[str] = None, api_key: Optional[str] = None
             )
 
     client = QdrantClient(url, api_key=api_key)
-    debug_print("[DEBUG] QdrantClient built successfully")
 
-    debug_print("[DEBUG] build_qdrant_client END")
     return client
 
 
@@ -218,51 +215,36 @@ class HierarchicalDataManager:
                     top_p=1
                 )
 
-                debug_print(f"[DEBUG] prompt={user_prompt} response={response}")
 
                 classification = response.choices[0].message.content.strip().replace(".", "")
-                debug_print(f"[DEBUG] GPT classification result: {classification}")
 
                 return classification
 
 
     def save_data(self, document):
         """Save document data to Qdrant and hierarchy nodes to a JSON file."""
-        debug_print("[DEBUG] save_data START")
         document_text = ' '.join(document.text)
-        #debug_print("[DEBUG] Full document text: " + document_text[:100] + "...")
 
         # Step 1: Sector Classification
         sectors = self.get_all_sectors()
-        debug_print(f"[DEBUG] Found existing sectors: {sectors}")
         sector = self.classify_with_gpt(document_text, sectors, "sector")
-        debug_print(f"[DEBUG] sector => '{sector}'")
         self.save_hierarchy_node(name=sector, level="sector")
-        debug_print(f"[DEBUG] Saved sector: {sector}")
 
         # Step 2: Subject Classification
         subjects = self.get_subjects_under_sector(sector)
-        debug_print(f"[DEBUG] Found existing subjects under sector '{sector}': {subjects}")
         subject = self.classify_with_gpt(document_text, subjects, "subject",sector=sector)
-        debug_print(f"[DEBUG] subject => '{subject}'")
         self.save_hierarchy_node(name=subject, level="subject", parent=sector)
-        debug_print(f"[DEBUG] Saved subject: {subject}")
 
         # Step 3: Event Type Classification
         event_types = self.get_event_types_under_subject(sector, subject)
-        debug_print(f"[DEBUG] Found existing event types under subject '{subject}': {event_types}")
         event_type = self.classify_with_gpt(document_text, event_types, "event type",sector=sector,subject=subject)
-        debug_print(f"[DEBUG] event_type => '{event_type}'")
         self.save_hierarchy_node(name=event_type, level="event_type", parent=subject)
-        debug_print(f"[DEBUG] Saved event type: {event_type}")
 
         # Save the hierarchy to JSON
         self.save_hierarchy_to_file()
-        debug_print("[DEBUG] Hierarchy saved to JSON file.")
 
         # Step 4: Save the document in its specific Qdrant collection
         doc_collection_name = f"{sector}__{subject}__{event_type}".lower().replace(" ", "_")
-        debug_print(f"[DEBUG] Final collection_name => '{doc_collection_name}'")
         # Upsert the document embeddings into Qdrant
         try:
             ids, payloads = document.to_payloads(doc_collection_name)
@@ -273,9 +255,7 @@ class HierarchicalDataManager:
             # if len(points) > 1 and document.metadata['headline']:
             #     debug_print(f"[DEBUG] Number of points in doc with header {document.metadata['headline']} is {len(points)}")
             self.client.upsert(collection_name=self.collection_name, points=points)
-            debug_print(f"[DEBUG] Document saved successfully in {self.collection_name}")
 
-            debug_print("[DEBUG] save_data END")
         except Exception as e:
             debug_print(f"[DEBUG] Exception when upserting to new collection: {e}")
 
@@ -295,15 +275,10 @@ class QdrantVectorSink(StatelessSink):
         client: QdrantClient,
         collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
     ):
-        debug_print("[DEBUG] QdrantVectorSink.__init__ START")
         self.hierarchical_data_manager = HierarchicalDataManager(client, collection_name)
-        debug_print("[DEBUG] QdrantVectorSink.__init__ END")
 
     def write(self, document: Document):
-        debug_print("[DEBUG] QdrantVectorSink.write START")
         self.hierarchical_data_manager.save_data(document)
-        debug_print("[DEBUG] Document saved to hierarchical data store!")
-        debug_print("[DEBUG] QdrantVectorSink.write END")
 
 
 class QdrantVectorOutput(DynamicOutput):
@@ -325,7 +300,6 @@ class QdrantVectorOutput(DynamicOutput):
         collection_name: str = constants.VECTOR_DB_OUTPUT_COLLECTION_NAME,
         client: Optional[QdrantClient] = None,
     ):
-        debug_print("[DEBUG] QdrantVectorOutput.__init__ START")
         self._collection_name = collection_name
         self._vector_size = vector_size
 
@@ -336,7 +310,6 @@ class QdrantVectorOutput(DynamicOutput):
         try:
             response =self.client.get_collection(collection_name=self._collection_name)
         except Exception as e:
-            debug_print(f"[DEBUG] Exception when getting collection: {e}")
             if 'vectors_count' not in str(e):
                 self.client.create_collection(
                     collection_name=self._collection_name,
@@ -344,9 +317,7 @@ class QdrantVectorOutput(DynamicOutput):
                     size=self._vector_size,
                     distance=Distance.COSINE
                     ),
-                    # Manuall add this optimizers_config to address issue: https://github.com/iusztinpaul/hands-on-llms/issues/72
-                    # qdrant_client.http.exceptions.ResponseHandlingException: 1 validation error for ParsingModel[InlineResponse2005] (for parse_as_type)
-                    # obj -> result -> config -> optimizer_config -> max_optimization_threads
+
                     # none is not an allowed value (type=type_error.none.not_allowed)
                     optimizers_config=OptimizersConfigDiff(max_optimization_threads=1),
                 )
@@ -362,7 +333,5 @@ class QdrantVectorOutput(DynamicOutput):
             QdrantVectorSink: A QdrantVectorSink object.
         """
 
-        debug_print(f"[DEBUG] QdrantVectorOutput.build START on worker {worker_index}/{worker_count}")
         sink = QdrantVectorSink(self.client, self._collection_name)
-        debug_print("[DEBUG] QdrantVectorOutput.build END - returning sink")
         return sink
