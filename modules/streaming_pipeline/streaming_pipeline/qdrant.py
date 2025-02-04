@@ -20,6 +20,7 @@ LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "debug.log")
 INDICES_PATH = os.path.join(os.path.dirname(__file__), "hierarchy_indices_db.json")
 
 
+
 def debug_print(msg: str):
     """
     Logs debug messages to `debug.log` in this directory,
