@@ -4,7 +4,6 @@ import inspect
 import datetime
 
 import openai
-from openai.error import RateLimitError
 import time
 from typing import List, Optional
 from bytewax.outputs import DynamicOutput, StatelessSink
