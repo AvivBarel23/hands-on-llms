@@ -199,7 +199,7 @@ class HierarchicalDataManager:
 
 
                 # Request GPT classification
-                response = openai.chat.completions.create(
+                response = (openai.ChatCompletion.create(
                     model="gpt-4o-mini",
                     messages=[
                         {
@@ -214,7 +214,7 @@ class HierarchicalDataManager:
                     temperature=0.8,
                     max_tokens=10,
                     top_p=1
-                )
+                ))
 
 
                 classification = response.choices[0].message.content.strip().replace(".", "")
