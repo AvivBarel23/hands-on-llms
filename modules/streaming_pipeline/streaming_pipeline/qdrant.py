@@ -198,45 +198,27 @@ class HierarchicalDataManager:
 
 
                 # Request GPT classification
-                attempt = 0
-                max_attempts = 5  # Avoid infinite loops; adjust as needed
-
-                while attempt < max_attempts:
-                    try:
-                        response = openai.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=[
-                                {
-                                    "role": "system",
-                                    "content": f"You are a financial classifier for data , {system_prompt}"
-                                },
-                                {
-                                    "role": "user",
-                                    "content": user_prompt
-                                }
-                            ],
-                            temperature=0.8,
-                            max_tokens=10,
-                            top_p=1
-                        )
+                response = openai.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": f"You are a financial classifier for data , {system_prompt}"
+                        },
+                        {
+                            "role": "user",
+                            "content": user_prompt
+                        }
+                    ],
+                    temperature=0.8,
+                    max_tokens=10,
+                    top_p=1
+                )
 
 
-                        classification = response.choices[0].message.content.strip().replace(".", "")
-                        return classification
+                classification = response.choices[0].message.content.strip().replace(".", "")
 
-
-
-                    except Exception as e:
-                        # Catch-all for other exceptions; log or re-raise as needed
-                        attempt += 1
-                        # Exponential backoff (can also do a simple fixed wait)
-                        sleep_time = min(2 ** attempt, 60)  # Don't wait more than 60 seconds
-                        debug_print(
-                            f"Rate limit error ({e}). Retrying in {sleep_time} seconds... [Attempt {attempt}/{max_attempts}]")
-                        time.sleep(sleep_time)
-                        raise e
-
-
+                return classification
 
 
     def save_data(self, document):
