@@ -224,17 +224,17 @@ class HierarchicalDataManager:
 
                         classification = response.choices[0].message.content.strip().replace(".", "")
                         return classification
-                    except RateLimitError as e:
+
+
+
+                    except Exception as e:
+                        # Catch-all for other exceptions; log or re-raise as needed
                         attempt += 1
                         # Exponential backoff (can also do a simple fixed wait)
                         sleep_time = min(2 ** attempt, 60)  # Don't wait more than 60 seconds
                         debug_print(
                             f"Rate limit error ({e}). Retrying in {sleep_time} seconds... [Attempt {attempt}/{max_attempts}]")
                         time.sleep(sleep_time)
-
-                    except Exception as e:
-                        # Catch-all for other exceptions; log or re-raise as needed
-                        print(f"Unexpected error: {e}")
                         raise e
 
 
